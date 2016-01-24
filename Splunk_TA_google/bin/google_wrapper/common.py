@@ -35,7 +35,8 @@ def create_google_client(config):
     if credentials.create_scoped_required():
         credentials = credentials.create_scoped(config["scopes"])
 
-    http = sr.build_http_connection(config)
+    http = sr.build_http_connection(
+        config, timeout=config.get("pulling_interval", 30))
     client = discovery.build(
         "pubsub", "v1", http=http, credentials=credentials)
     return client

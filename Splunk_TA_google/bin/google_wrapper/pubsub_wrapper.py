@@ -1,6 +1,7 @@
 import traceback
 import time
 import base64
+import ssl
 
 import google_wrapper.common as gwc
 
@@ -62,6 +63,9 @@ class GooglePubSub(object):
                 resp = self._client.projects().subscriptions().pull(
                     subscription=subscription, body=body).execute(
                     num_retries=3)
+            except ssl.SSLError as e:
+                if "timed out" in e.message:
+                    yield []
             except Exception:
                 self._logger.error(
                     "Failed to pull messages from subscription=%s, error=%s",
@@ -71,7 +75,7 @@ class GooglePubSub(object):
 
             messages = resp.get("receivedMessages")
             if not messages:
-                continue
+                yield []
 
             if base64encoded:
                 for message in messages:
@@ -82,6 +86,9 @@ class GooglePubSub(object):
             yield messages
 
     def ack_messages(self, messages):
+        if not messages:
+            return
+
         ack_ids = []
         for message in messages:
             ack_ids.append(message.get("ackId"))
@@ -126,7 +133,7 @@ if __name__ == "__main__":
             messages = ["i am counting {} {}".format(i, j) for j in range(10)]
             print "publishing ", messages
             ps.publish_messages(messages)
-            time.sleep(2)
+            #time.sleep(1)
 
     pubthr = threading.Thread(target=pub)
     pubthr.start()

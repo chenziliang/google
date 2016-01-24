@@ -74,14 +74,8 @@ class GooglePubSubDataLoader(object):
 
     def _do_safe_index(self):
         # 1) Cache max_events in memory before indexing for batch processing
-        # 2) If there is max_count times which have no data, indexing whatever
-        #    we have
 
         msgs_metrics = {
-            "max_events": self._config.get(gpc.batch_count, 1000),
-            "msgs_buf": [],
-            "max_count": 10,
-            "count": 0,
             "current_record_count": 0,
             "record_report_threshhold": 1000000,
             "record_report_start": time.time()
@@ -107,30 +101,17 @@ class GooglePubSubDataLoader(object):
         self._running = False
 
     def _index_messages(self, msgs, msgs_metrics):
-        msgs_buf = msgs_metrics["msgs_buf"]
-        if msgs:
-            msgs_buf.extend(msgs)
-        else:
-            msgs_metrics["count"] += 1
-            if msgs_metrics["count"] < msgs_metrics["max_count"]:
-                return
-
-        if len(msgs_buf) >= msgs_metrics["max_events"]:
-            msgs_metrics["current_record_count"] += len(msgs_buf)
-            current_count = msgs_metrics["current_record_count"]
-            if current_count >= msgs_metrics["record_report_threshhold"]:
-                logger.info(
-                    "index %s events for project=%s, subscription=%s takes "
-                    "time=%s", self._config[gpc.google_project],
-                    self._config[gpc.google_subscription], current_count,
-                    time.time() - msgs_metrics["record_report_start"])
-                msgs_metrics["record_report_start"] = time.time()
-                msgs_metrics["current_record_count"] = 0
-            self._write_events(msgs_buf)
-        elif msgs_metrics["count"] >= msgs_metrics["max_count"]:
-            msgs_metrics["count"] = 0
-            if msgs_buf:
-                self._write_events(msgs_buf)
+        msgs_metrics["current_record_count"] += len(msgs)
+        current_count = msgs_metrics["current_record_count"]
+        if current_count >= msgs_metrics["record_report_threshhold"]:
+            logger.info(
+                "index %s events for project=%s, subscription=%s takes "
+                "time=%s", self._config[gpc.google_project],
+                self._config[gpc.google_subscription], current_count,
+                time.time() - msgs_metrics["record_report_start"])
+            msgs_metrics["record_report_start"] = time.time()
+            msgs_metrics["current_record_count"] = 0
+        self._write_events(msgs)
 
     def _write_events(self, msgs):
         msgs_str = [dumps(msg["message"]) for msg in msgs]
