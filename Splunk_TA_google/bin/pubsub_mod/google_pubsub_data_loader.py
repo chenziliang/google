@@ -6,7 +6,8 @@ from splunktalib.common import log
 logger = log.Logs().get_logger("main")
 
 
-import google_consts as c
+import google_ta_common.google_consts as ggc
+import pubsub_mod.google_pubsub_consts as gpc
 import google_wrapper.pubsub_wrapper as gpw
 
 
@@ -33,13 +34,13 @@ class GooglePubSubDataLoader(object):
 
         self._config = config
         self._source = "{project}:{subscription}".format(
-            project=self._config[c.google_project],
-            subscription=self._config[c.google_subscription])
+            project=self._config[gpc.google_project],
+            subscription=self._config[gpc.google_subscription])
         self._running = False
         self._stopped = False
 
     def get_interval(self):
-        return self._config[c.polling_interval]
+        return self._config[ggc.polling_interval]
 
     def stop(self):
         self._stopped = True
@@ -54,22 +55,22 @@ class GooglePubSubDataLoader(object):
         self._running = True
 
         logger.info("Start indexing data for project=%s, subscription=%s",
-                    self._config[c.google_project],
-                    self._config[c.google_subscription])
+                    self._config[gpc.google_project],
+                    self._config[gpc.google_subscription])
         while not self._stopped:
             try:
                 self._do_safe_index()
             except Exception:
                 logger.error(
                     "Failed to index data for project=%s, subscription=%s, "
-                    "error=%s", self._config[c.google_project],
-                    self._config[c.google_subscription],
+                    "error=%s", self._config[gpc.google_project],
+                    self._config[gpc.google_subscription],
                     traceback.format_exc())
                 time.sleep(2)
                 continue
         logger.info("End of indexing data for project=%s, subscription=%s",
-                    self._config[c.google_project],
-                    self._config[c.google_subscription])
+                    self._config[gpc.google_project],
+                    self._config[gpc.google_subscription])
 
     def _do_safe_index(self):
         # 1) Cache max_events in memory before indexing for batch processing
@@ -77,7 +78,7 @@ class GooglePubSubDataLoader(object):
         #    we have
 
         msgs_metrics = {
-            "max_events": self._config.get(c.batch_count, 1000),
+            "max_events": self._config.get(gpc.batch_count, 1000),
             "msgs_buf": [],
             "max_count": 10,
             "count": 0,
@@ -98,8 +99,8 @@ class GooglePubSubDataLoader(object):
             except Exception:
                 logger.error(
                     "Failed to pull message from project=%s, subscription=%s, "
-                    "error=%s", self._config[c.google_project],
-                    self._config[c.google_subscription],
+                    "error=%s", self._config[gpc.google_project],
+                    self._config[gpc.google_subscription],
                     traceback.format_exc())
                 time.sleep(2)
                 continue
@@ -120,8 +121,8 @@ class GooglePubSubDataLoader(object):
             if current_count >= msgs_metrics["record_report_threshhold"]:
                 logger.info(
                     "index %s events for project=%s, subscription=%s takes "
-                    "time=%s", self._config[c.google_project],
-                    self._config[c.google_subscription], current_count,
+                    "time=%s", self._config[gpc.google_project],
+                    self._config[gpc.google_subscription], current_count,
                     time.time() - msgs_metrics["record_report_start"])
                 msgs_metrics["record_report_start"] = time.time()
                 msgs_metrics["current_record_count"] = 0
@@ -133,8 +134,8 @@ class GooglePubSubDataLoader(object):
 
     def _write_events(self, msgs):
         msgs_str = [dumps(msg["message"]) for msg in msgs]
-        self._config[c.event_writer].write_events(
-            index=self._config[c.index], source=self._source,
+        self._config[ggc.event_writer].write_events(
+            index=self._config[ggc.index], source=self._source,
             sourcetype="google:pubsub", events=msgs_str)
         del msgs[:]
 
@@ -157,17 +158,17 @@ if __name__ == "__main__":
 
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "zlchenken-78c88c5c115b.json"
     config = {
-        c.data_loader: O(),
-        c.event_writer: O(),
-        c.checkpoint_dir: ".",
-        c.server_uri: "https://localhost:8089",
-        c.server_host: "localhost",
-        c.google_project: "zlchenken",
-        c.google_topic: "test_topic",
-        c.google_subscription: "sub_test_topic",
-        c.batch_count: 10,
-        c.base64encoded: True,
-        c.index: "main",
+        ggc.data_loader: O(),
+        ggc.event_writer: O(),
+        ggc.checkpoint_dir: ".",
+        ggc.server_uri: "https://localhost:8089",
+        ggc.server_host: "localhost",
+        ggc.index: "main",
+        gpc.google_project: "zlchenken",
+        gpc.google_topic: "test_topic",
+        gpc.google_subscription: "sub_test_topic",
+        gpc.batch_count: 10,
+        gpc.base64encoded: True,
     }
 
     def pub():

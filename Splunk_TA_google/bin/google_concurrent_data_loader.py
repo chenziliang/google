@@ -8,17 +8,11 @@ import splunktalib.event_writer as ew
 import splunktalib.timer_queue as tq
 import splunktalib.orphan_process_monitor as opm
 from splunktalib.common import log
-from splunktalib.common import util as scutil
 
-import kafka_data_loader as kdl
+import pubsub_mod.google_pubsub_data_loader as gdl
 import kafka_consts as c
 
 logger = log.Logs().get_logger("main")
-
-
-def use_single_instance():
-    res = scutil.is_true(os.environ.get("kafka_single_instance", "true"))
-    return "{}".format(res).lower()
 
 
 def _wait_for_tear_down(tear_down_q, loader):
@@ -40,7 +34,7 @@ def _wait_for_tear_down(tear_down_q, loader):
 
 
 def _load_data(tear_down_q, task_config):
-    loader = kdl.KafkaDataLoader(task_config)
+    loader = gdl.GooglePubSubDataLoader(task_config)
     thr = threading.Thread(
         target=_wait_for_tear_down, args=(tear_down_q, loader))
     thr.daemon = True
@@ -50,7 +44,7 @@ def _load_data(tear_down_q, task_config):
     logger.info("End of load data")
 
 
-class KafkaConcurrentDataLoader(object):
+class GooglePubSubConcurrentDataLoader(object):
 
     def __init__(self, task_config, tear_down_q, process_safe):
         if process_safe:
@@ -71,7 +65,7 @@ class KafkaConcurrentDataLoader(object):
         self._started = True
 
         self._worker.start()
-        logger.info("Kafka concurrent data loader started.")
+        logger.info("Google pubsub concurrent data loader started.")
 
     def stop(self):
         if not self._started:
@@ -79,10 +73,10 @@ class KafkaConcurrentDataLoader(object):
         self._started = False
 
         self._tear_down_q.put(True)
-        logger.info("Kafka concurrent data loader is going to exit.")
+        logger.info("Google pubsub concurrent data loader is going to exit.")
 
 
-class KafkaDataLoaderManager(object):
+class GooglePubSubDataLoaderManager(object):
 
     def __init__(self, task_configs):
         self._task_configs = task_configs
@@ -109,13 +103,14 @@ class KafkaDataLoaderManager(object):
         loaders = []
         for task in self._task_configs:
             task[c.data_loader] = event_writer
-            loader = KafkaConcurrentDataLoader(task, tear_down_q, process_safe)
+            loader = GooglePubSubConcurrentDataLoader(
+                task, tear_down_q, process_safe)
             loader.start()
             loaders.append(loader)
 
-        logger.info("KafkaDataLoaderManager started")
+        logger.info("GooglePubSubDataLoaderManager started")
         _wait_for_tear_down(self._wakeup_queue, None)
-        logger.info("KafkaDataLoaderManager got stop signal")
+        logger.info("GooglePubSubDataLoaderManager got stop signal")
 
         for loader in loaders:
             logger.info("Notify loader=%s", loader.name)
@@ -124,12 +119,12 @@ class KafkaDataLoaderManager(object):
         event_writer.tear_down()
         self._timer_queue.tear_down()
 
-        logger.info("KafkaDataLoaderManager stopped")
+        logger.info("GooglePubSubDataLoaderManager stopped")
 
     def stop(self):
         self._stop_signaled = True
         self._wakeup_queue.put(True)
-        logger.info("KafkaDataLoaderManager is going to stop.")
+        logger.info("GooglePubSubDataLoaderManager is going to stop.")
 
     def stopped(self):
         return not self._started
@@ -147,11 +142,7 @@ class KafkaDataLoaderManager(object):
         if not self._task_configs:
             return False
 
-        single_instance = use_single_instance()
-        use_process = self._task_configs[0].get(c.use_multiprocess_consumer)
-        return (scutil.is_true(single_instance) and
-                len(self._task_configs) > 1 and
-                scutil.is_true(use_process))
+        return self._task_configs[0].get(c.use_multiprocess_consumer)
 
     def _create_tear_down_queue(self, process_safe):
         if process_safe:
