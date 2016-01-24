@@ -204,7 +204,6 @@ class HecEventWriter(object):
                     logger.error(msg)
                     raise Exception(msg)
             except Exception as e:
-                print e
                 last_ex = e
                 logger.error("Failed to post events to HEC_URI=%s, error=%s",
                              self._uri, traceback.format_exc())
@@ -245,8 +244,6 @@ class RawHecEventWriter(HecEventWriter):
 
 
 if __name__ == "__main__":
-    """
-
     all_events = [["i love you"], ["1", "2", "3"]]
 
     index_events = []
@@ -271,7 +268,6 @@ if __name__ == "__main__":
     writer.start()
     writer.write_events(index_events)
     writer.tear_down()
-    """
 
     import uuid
     config = {
@@ -282,7 +278,7 @@ if __name__ == "__main__":
 
     writer = HecEventWriter(config)
     event = {
-        "event": {"data": "i love you"},
+        "event": "i love you",
         "index": "main",
         "source": "hec_test",
         "sourcetype": "hec:test",
