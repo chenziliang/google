@@ -1,0 +1,11 @@
+<endpoint name="data/inputs/google_pubsub">
+  <header>Google PubSub</header>
+    <introText>View and manage your Splunk Add-on for Google inputs in the Splunk Add-on for Google configuration page. Click "New" to be redirected.</introText>
+
+  <elements>
+    <element name="spl-crtl_script" type="googletaskredirect">
+        <view name="create"/>
+        <view name="edit"/>
+    </element>
+  </elements>
+</endpoint>

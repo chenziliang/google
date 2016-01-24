@@ -1,0 +1,14 @@
+<setup>
+    <block title=" " endpoint="google_input_setup/google_settings" entity="google_settings">
+        <input field="all_settings">
+            <label> </label>
+            <type>text</type>
+        </input>
+        <text>
+            <![CDATA[
+                <script type="text/javascript" src="/en-US/static/app/Splunk_TA_google/js/setup.js"></script>
+                <script type="text/javascript" src="/en-US/static/app/Splunk_TA_google/js/setup_page.js"></script>
+            ]]>
+        </text>
+    </block>
+</setup>
