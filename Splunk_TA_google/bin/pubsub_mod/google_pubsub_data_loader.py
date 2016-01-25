@@ -115,10 +115,11 @@ class GooglePubSubDataLoader(object):
 
     def _write_events(self, msgs):
         msgs_str = [dumps(msg["message"]) for msg in msgs]
-        self._config[ggc.event_writer].write_events(
-            index=self._config[ggc.index], source=self._source,
-            sourcetype="google:pubsub", events=msgs_str)
-        del msgs[:]
+        events = self._config[ggc.event_writer].create_events(
+            index=self._config[ggc.index], host="", source=self._source,
+            sourcetype="google:pubsub", time="", unbroken=False, done=False,
+            events=msgs_str)
+        self._config[ggc.event_writer].write_events(events)
 
 
 if __name__ == "__main__":

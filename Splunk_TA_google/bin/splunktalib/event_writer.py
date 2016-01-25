@@ -34,12 +34,12 @@ class ModinputEvent(object):
     done_fmt = base_fmt.replace("{unbroken}", ' unbroken="1"').replace(
         "{done}", "<done/>")
 
-    def __init__(self, index, host, source, sourcetype, timestamp,
-                 events, unbroken=False, done=False):
+    def __init__(self, index, host, source, sourcetype, time,
+                 unbroken, done, events):
         self._string_events = self._format_events(
-            index, host, source, sourcetype, timestamp, events, unbroken, done)
+            index, host, source, sourcetype, time, events, unbroken, done)
 
-    def _format_events(self, index, host, source, sourcetype, timestamp,
+    def _format_events(self, index, host, source, sourcetype, time,
                        events, unbroken, done):
         evt_fmt = self.event_fmt
         if done:
@@ -49,22 +49,20 @@ class ModinputEvent(object):
 
         if isinstance(events, (list, tuple)):
             res = "".join([self._do_format(
-                evt, evt_fmt, index, host, source, sourcetype, timestamp)
+                evt, evt_fmt, index, host, source, sourcetype, time)
                 for evt in events])
         elif isinstance(events, (str, unicode)):
             res = self._do_format(
-                events, evt_fmt, index, host, source, sourcetype, timestamp)
+                events, evt_fmt, index, host, source, sourcetype, time)
         else:
             assert 0
 
         return "<stream>{}</stream>".format(res)
 
-    def _do_format(self, evt, evt_fmt, index, host, source,
-                   sourcetype, timestamp):
+    def _do_format(self, evt, evt_fmt, index, host, source, sourcetype, time):
         evt = scutil.escape_cdata(evt)
         res = evt_fmt.format(index=index, host=host, source=source,
-                             sourcetype=sourcetype, time=timestamp,
-                             data=evt)
+                             sourcetype=sourcetype, time=time, data=evt)
         return res
 
     def to_string(self):
@@ -108,6 +106,13 @@ class ModinputEventWriter(object):
             return
 
         self._event_queue.put(events)
+
+    @staticmethod
+    def create_events(index, host, source, sourcetype, time, unbroken,
+                      done, events):
+        return [ModinputEvent(index=index, host=host, source=source,
+                              sourcetype=sourcetype, time=time,
+                              unbroken=unbroken, done=done, events=events)]
 
     def _do_write_events(self):
         event_queue = self._event_queue
@@ -212,6 +217,19 @@ class HecEventWriter(object):
                 time.sleep(2)
         raise last_ex
 
+    @staticmethod
+    def create_events(index, host, source, sourcetype,
+                      time, unbroken, done, events):
+        return [
+            {
+                "index": index,
+                "host": host,
+                "source": source,
+                "sourcetype": sourcetype,
+                "time": time,
+                "event": event,
+            } for event in events]
+
 
 class RawHecEventWriter(HecEventWriter):
 
@@ -252,8 +270,8 @@ if __name__ == "__main__":
             for done in (0, 1):
                 evt = ModinputEvent(
                     index="main", host="localhost", source="test",
-                    sourcetype="test:json", timestamp=time.time(),
-                    events=events, unbroken=unbroken, done=done)
+                    sourcetype="test:json", time=time.time(),
+                    unbroken=unbroken, done=done, events=events)
                 index_events.append(evt)
                 print evt.to_string()
 
@@ -278,10 +296,10 @@ if __name__ == "__main__":
 
     writer = HecEventWriter(config)
     event = {
-        "event": "i love you",
         "index": "main",
         "source": "hec_test",
         "sourcetype": "hec:test",
+        "event": "i love you",
         "time": time.time(),
     }
     writer.write_events([event] * 10)

@@ -18,6 +18,9 @@ appname = "appname"
 
 use_kv_store = "use_kv_store"
 use_hec = "use_hec"
+use_raw_hec = "use_raw_hec"
+use_multiprocess = "use_multiprocess"
+
 log_level = "log_level"
 proxy_hostname = "proxy_hostname"
 proxy_username = "proxy_username"
@@ -25,10 +28,8 @@ proxy_password = "proxy_password"
 proxy_rdns = "proxy_rdns"
 proxy_type = "proxy_type"
 
-role = "role"
-dispatchers = "dispatchers"
-dispatcher = "dispatcher"
-worker = "worker"
-dispatcher_worker = "dispatcher_worker"
 
 polling_interval = "polling_interval"
+
+google_service = "google_service"
+google_pubsub = "google_pubsub"

@@ -1,3 +1,9 @@
+role = "role"
+dispatchers = "dispatchers"
+dispatcher = "dispatcher"
+worker = "worker"
+dispatcher_worker = "dispatcher_worker"
+
 google_project = "google_project"
 google_topic = "google_topic"
 google_subscription = "google_subscription"
