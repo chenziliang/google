@@ -92,8 +92,8 @@ function return_page() {
                     <fieldset>\
                         <legend>Credential Settings</legend>\
                         <div>\
-                            <span class="float-left" style="font-size:14px;">Kafka Cluster</span>\
-                            <button id="btnAdd" type="submit" class="float-right credBtn"><span>Add Kafka Cluster</span></button>\
+                            <span class="float-left" style="font-size:14px;">Google Credentials</span>\
+                            <button id="btnAdd" type="submit" class="float-right credBtn"><span>Add Credentials</span></button>\
                         </div>\
                         <br>\
                         <br>\
@@ -107,14 +107,19 @@ function return_page() {
                                 </tbody>\
                             </table>\
                         </div>\
+                    </fieldset>\
+                </div> \
+                <div class="fieldsetWrapper" id="credSettingId">\
+                    <fieldset>\
+                        <legend>Data Collections</legend>\
                         <div>\
-                            <span class="float-left" style="font-size:14px;">Forwarders</span>\
-                            <button id="forwarderBtnAdd" type="submit" class="float-right credBtn"><span>Add Forwarder</span></button>\
+                            <span class="float-left" style="font-size:14px;">Data Collections</span>\
+                            <button id="dataCollectionBtnAdd" type="submit" class="float-right credBtn"><span>Add Data Collection</span></button>\
                         </div>\
                         <br>\
                         <br>\
                         <div>\
-                            <table id="forwarderCredTable" class="table mg-10" style="display: table;">\
+                            <table id="dataCollectionTable" class="table mg-10" style="display: table;">\
                                 <thead class="tableHead">\
                                     <tr>\
                                     </tr>\
@@ -130,19 +135,19 @@ function return_page() {
             </div> <!-- end of form_wrapper-->\
             <div class="dialog credDialog">\
                 <div id="credDialog" class="dialog-header color-gray pd-16">\
-                    Add Kafka Cluster\
+                    Add Credentials\
                 </div>\
                 <div class="dialog-content pd-16">\
                     <form autocomplete="off" id="credForm" class="credform">\
                     </form>\
                 </div>\
             </div>\
-            <div class="dialog2 forwarderCredDialog">\
-                <div id="forwarderCredDialog" class="dialog-header color-gray pd-16">\
-                    Add Heavy Forwarder\
+            <div class="dialog2 dataCollectionDialog">\
+                <div id="dataCollectionDialog" class="dialog-header color-gray pd-16">\
+                    Add Data Collection\
                 </div>\
                 <div class="dialog-content pd-16">\
-                    <form autocomplete="off" id="forwarderCredForm" class="credform">\
+                    <form autocomplete="off" id="dataCollectionForm" class="credform">\
                     </form>\
                 </div>\
             </div>\

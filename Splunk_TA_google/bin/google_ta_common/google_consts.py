@@ -27,9 +27,22 @@ proxy_username = "proxy_username"
 proxy_password = "proxy_password"
 proxy_rdns = "proxy_rdns"
 proxy_type = "proxy_type"
+proxy_enabled = "proxy_enabled"
 
 
 polling_interval = "polling_interval"
 
 google_service = "google_service"
 google_pubsub = "google_pubsub"
+
+
+global_settings = "global_settings"
+proxy_settings = "proxy_settings"
+credential_settings = "credential_settings"
+data_collection_settings = "data_collection_settings"
+
+all_settings = "all_settings"
+myta_settings = "google_settings"
+myta_cred_conf = "google_credentials.conf"
+myta_data_collection_conf = "google_inputs.conf"
+myta_global_settings_conf = "google_global_settings.conf"

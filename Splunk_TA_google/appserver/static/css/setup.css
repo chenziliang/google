@@ -192,8 +192,7 @@ table tbody tr:hover{
     right: 0;
     margin: auto;
     width: 400px;
-    /*height: 450px;*/
-    height: 550px;
+    height: 210px;
     z-index: 1000;
     background-color: #fff;
     border-radius: 5px;
@@ -210,8 +209,7 @@ table tbody tr:hover{
     right: 0;
     margin: auto;
     width: 400px;
-    /*height: 450px;*/
-    height: 310px;
+    height: 370px;
     z-index: 1000;
     background-color: #fff;
     border-radius: 5px;
@@ -259,7 +257,7 @@ table tbody tr:hover{
 }
 
 
-.credform button#credDialogBtnSave, .credform button#forwarderCredDialogBtnSave {
+.credform button#credDialogBtnSave, .credform button#dataCollectionDialogBtnSave {
     background-color: #65a637;
     border: 1px solid #4e802a;
     border-bottom-color: #4e802a;
@@ -275,7 +273,7 @@ table tbody tr:hover{
     height: 25px;
 }
 
-.credform button#credDialogBtnCancel, .credform button#forwarderCredDialogBtnCancel {
+.credform button#credDialogBtnCancel, .credform button#dataCollectionDialogBtnCancel {
     background-color: #eeeeee;
     border: 1px solid #bfbfbf;
     border-top-color: #bfbfbf;

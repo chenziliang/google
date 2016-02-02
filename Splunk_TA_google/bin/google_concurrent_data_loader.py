@@ -225,3 +225,4 @@ if __name__ == "__main__":
     threading.Thread(target=_tear_down).start()
     l.start()
     pubthr.join()
+    time.sleep(1)

@@ -1,8 +1,8 @@
 $(document).ready(function() {
-    $(".ManagerPageTitle").text("Splunk Add-on for Kafka");
+    $(".ManagerPageTitle").text("Splunk Add-on for Google");
     // 0) global vars
     // FIXME for the ebox_id, it will be different from TA to TA.
-    var allSettingsEboxId = "#\\/kafka_input_setup\\/kafka_settings\\/kafka_settings\\/all_settings_id";
+    var allSettingsEboxId = "#\\/google_input_setup\\/google_settings\\/google_settings\\/all_settings_id";
 
     var appname = Splunk.util.getCurrentApp();
     // 1) Load dependent css and javascript
@@ -16,7 +16,7 @@ $(document).ready(function() {
     var originFormWrapper = $(".formWrapper");
     originFormWrapper.css("display", "none");
     originFormWrapper.before(return_page());
-    $("#proxySettingId").css("display", "none");
+    // $("#proxySettingId").css("display", "none");
     // originFormWrapper.after(return_page());
     // originFormWrapper.remove();
 
@@ -78,7 +78,7 @@ $(document).ready(function() {
             return;
         }
 
-        $("#index_id").val(settings["global_settings"]["index"]);
+        // $("#index_id").val(settings["global_settings"]["index"]);
         $("#log_level_id").val(settings["global_settings"]["log_level"]);
 
         // Proxy settings
@@ -96,7 +96,7 @@ $(document).ready(function() {
         setCheckBox("proxy_rdns_id", settings["proxy_settings"]["proxy_rdns"]);
     };
 
-    function updateCredentialSettings(cols, credentialSettings) {
+    function updateSettings(cols, credentialSettings) {
         var creds = [];
         var credsMap = {};
 
@@ -219,9 +219,10 @@ $(document).ready(function() {
     function hideDialogHandler(e){
         var btnIdToDialogId = {
             "credDialogBtnCancel": "credDialog",
-            "forwarderCredDialogBtnCancel": "forwarderCredDialog",
+            "dataCollectionDialogBtnCancel": "dataCollectionDialog",
         };
         hideDialog(btnIdToDialogId[e.target.id]);
+        return false;
     };
 
     function clearFlag(){
@@ -268,22 +269,22 @@ $(document).ready(function() {
         }
         result["proxy_settings"] = proxy_settings;
 
-        // 3. Credential Settings and Forwarder Settings
-        var credSettings = {
+        // 3. Credential Settings and Data Collection Settings
+        var settings = {
             "credential_settings": tables.credTable,
-            "forwarder_credential_settings": tables.forwarderCredTable,
-        }
+            "data_collection_settings": tables.dataCollectionTable,
+        };
 
-        for (var k in credSettings) {
+        for (var k in settings) {
             result[k] = {};
-            var credTable = credSettings[k];
-            for (var i = 0; i < credTable.data.length; i++){
+            var table = settings[k];
+            for (var i = 0; i < table.data.length; i++){
                 var temp = {};
-                credTable.columns.forEach(function(c, j){
-                    temp[c.id] = credTable.data[i][j];
+                table.columns.forEach(function(c, j){
+                    temp[c.id] = table.data[i][j];
                 });
-                result[k][temp[credTable.columns[0].id]] = temp;
-                delete temp[credTable.columns[0].id];
+                result[k][temp[table.columns[0].id]] = temp;
+                delete temp[table.columns[0].id];
             }
         }
 
@@ -324,111 +325,62 @@ $(document).ready(function() {
     // Table header
     var columns = [{
         id: "credName",
-        name: "Kafka Cluster",
-        name_with_desc: "Kafka Cluster",
-        required: "required",
-        hide: false,
-        dialogHide: false,
-    }, {
-        id: "kafka_brokers",
-        name: "Kafka Brokers",
-        name_with_desc: htmlEscape("Kafka Brokers (<host:port>[,<host:port>][,...])"),
-        required: "required",
-        hide: false,
-        dialogHide: false,
-    }, {
-        id: "zookeepers",
-        name: "Zookeepers",
-        name_with_desc: htmlEscape("Zookeepers (<host:port>[,<host:port>][,...])"),
-        required: "",
-        hide: true,
-        dialogHide: true,
-    }, {
-        id: "zookeeper_chroot",
-        name: "CHROOT path",
-        name_with_desc: "Zookeeper CHROOT path",
-        required: "",
-        hide: true,
-        dialogHide: true,
-    }, {
-        id: "kafka_topic_whitelist",
-        name: "Topic Whitelist",
-        name_with_desc: "Topic Whitelist. For example, my_topic.+",
-        required: "",
-        hide: false,
-        dialogHide: false,
-    }, {
-        id: "kafka_topic_blacklist",
-        name: "Topic Blacklist",
-        name_with_desc: "Topic Blacklist. For example, _internal_topic.+",
-        required: "",
-        hide: false,
-        dialogHide: false,
-    }, {
-        id: "kafka_partition",
-        name: "Partition IDs",
-        name_with_desc: "Partition IDs. For example, 0,1,2",
-        required: "false",
-        hide: false,
-        dialogHide: false,
-    }, {
-        id: "kafka_partition_offset",
-        name: "Partition Offset",
-        name_with_desc: "Partition Offset",
+        name: "Name",
+        name_with_desc: "Google Credential Name",
         required: "true",
         hide: false,
         dialogHide: false,
     }, {
-        id: "kafka_topic_group",
-        name: "Topic Group",
-        name_with_desc: "Topic Group",
-        required: "false",
-        hide: false,
-        dialogHide: false,
-    }, {
-        id: "index",
-        name: "Index",
-        name_with_desc: "Index. Override index in Global Settings",
+        id: "google_credentials",
+        name: "Google Credentials",
+        name_with_desc: "Google Service Credentials (json format)",
         required: "true",
         hide: false,
         dialogHide: false,
     }];
 
-    var forwarderColumns = [{
-        id: "forwarderCredName",
-        name: "Forwarder Name",
-        name_with_desc: "Heavy Forwarder Name",
-        required: "required",
+    var dataCollectionColumns = [{
+        id: "dataCollectionName",
+        name: "Name",
+        name_with_desc: "Data Collection Name",
+        required: "true",
         hide: false,
         dialogHide: false,
     }, {
-        id: "hostname",
-        name: "Hostname/port",
-        name_with_desc: "Heavy Forwarder Hostname and Port. For example, localhost:8089",
-        required: "required",
+        id: "google_credentials_name",
+        name: "Google Credentials",
+        name_with_desc: "Google Credentials",
+        required: "true",
         hide: false,
         dialogHide: false,
     }, {
-        id: "username",
-        name: "Username",
-        name_with_desc: "Heavy Forwarder Username",
-        required: "required",
+        id: "google_project",
+        name: "Google Project",
+        name_with_desc: "Project Name",
+        required: "true",
         hide: false,
         dialogHide: false,
     }, {
-        id: "password",
-        name: "Password",
-        name_with_desc: "Heavy Forwarder Password",
-        required: "required",
-        hide: true,
+        id: "google_subscription",
+        name: "Google Topic Subscription",
+        name_with_desc: "Topic Subscription",
+        required: "true",
+        hide: false,
+        dialogHide: false,
+    }, {
+        id: "index",
+        name: "Index",
+        name_with_desc: "Index",
+        required: "true",
+        hide: false,
         dialogHide: false,
     }];
 
     var allSettings = $(allSettingsEboxId).val();
     allSettings = $.parseJSON(allSettings);
     updateGlobalSettings(allSettings);
-    var creds = updateCredentialSettings(columns, allSettings.credential_settings);
-    var forwarderCreds = updateCredentialSettings(forwarderColumns, allSettings.forwarder_credential_settings);
+    var creds = updateSettings(columns, allSettings.credential_settings);
+    var dataCollections = updateSettings(dataCollectionColumns, allSettings.data_collection_settings);
 
     var tables = {
         "credTable": {
@@ -437,11 +389,11 @@ $(document).ready(function() {
             "data": creds.data,
             "dataMap": creds.dataMap,
         },
-        "forwarderCredTable": {
-            "id": "forwarderCredTable",
-            "columns": forwarderColumns,
-            "data": forwarderCreds.data,
-            "dataMap": forwarderCreds.dataMap,
+        "dataCollectionTable": {
+            "id": "dataCollectionTable",
+            "columns": dataCollectionColumns,
+            "data": dataCollections.data,
+            "dataMap": dataCollections.dataMap,
         },
     };
 
@@ -459,11 +411,11 @@ $(document).ready(function() {
             "formId": "credForm",
             "table": tables.credTable,
         },
-        "forwarderCredDialog": {
-            "id": "forwarderCredDialog",
-            "btnId": "forwarderBtnAdd",
-            "formId": "forwarderCredForm",
-            "table": tables.forwarderCredTable,
+        "dataCollectionDialog": {
+            "id": "dataCollectionDialog",
+            "btnId": "dataCollectionBtnAdd",
+            "formId": "dataCollectionForm",
+            "table": tables.dataCollectionTable,
         },
     };
 
@@ -471,6 +423,30 @@ $(document).ready(function() {
         enjectDialogForm(dialogId, dialogs[dialogId].formId, dialogs[dialogId].table.columns);
         registerBtnClickHandler(dialogId);
     }
+
+    function populate_credential_dropdowns(column) {
+        var options = ""
+        var data = tables.credTable.data;
+        for (var i = 0; i < data.length; i++) {
+            options += '<option value="' + data[i][0] + '">' + data[i][0] + '</option>';
+        }
+        var dropdown_html = '<select name="' + column.name_with_desc + '" id="' + column.id + '" ' + column.required + '>' + options + '</select>';
+        return dropdown_html;
+    };
+
+    function populate_google_project_dropdowns(column) {
+        var options = "";
+        var dropdown_html = '<select name="' + column.name_with_desc + '" id="' + column.id + '" ' + column.required + '>' + options + '</select>';
+        return dropdown_html;
+    };
+
+    function populate_google_subscription_dropdowns(column) {
+        var options = "";
+        var dropdown_html = '<select name="' + column.name_with_desc + '" id="' + column.id + '" ' + column.required + '>' + options + '</select>';
+        return dropdown_html;
+    };
+
+
 
     function enjectDialogForm(dialogId, formId, cols) {
         var form = $("#" + formId);
@@ -480,7 +456,7 @@ $(document).ready(function() {
             }
             var container = $("<div></div>");
             var label = undefined;
-            if (column.required == "required") {
+            if (column.required == "true") {
                 label = $("<label for='" + column.id + "'>" + column.name_with_desc + '<span class="requiredAsterisk"> *</span></label>');
             } else {
                 label = $("<label for='" + column.id + "'>" + column.name_with_desc + "</label>");
@@ -492,9 +468,16 @@ $(document).ready(function() {
 
             // FIXME not generic code here
             var input = undefined;
-            if (column.id == "kafka_partition_offset") {
-                input = $("<select name='" + column.name_with_desc + "' id='" + column.id + "' " + column.required + '><option value="earliest">Earliest</option><option value="latest">Latest</option></select>');
-            } else {
+            if (column.id == "google_credentials_name") {
+                var dropdowns = populate_credential_dropdowns(column);
+                input = $(dropdowns);
+            } else if (column.id == "google_project") {
+                var dropdowns = populate_google_project_dropdowns(column);
+                input = $(dropdowns);
+            } else if (column.id == "google_subscription") {
+                var dropdowns = populate_google_subscription_dropdowns(column);
+                input = $(dropdowns);
+            }else {
                 input = $("<input type='" + type + "' name='" + column.name_with_desc + "' id='" + column.id + "' " + column.required + "/>");
             }
             container.append(label);
@@ -521,7 +504,7 @@ $(document).ready(function() {
     function submitForm(formId) {
         var formIdToDialog = {
             "credForm": dialogs.credDialog,
-            "forwarderCredForm": dialogs.forwarderCredDialog,
+            "dataCollectionForm": dialogs.dataCollectionDialog,
         }
 
         var dialog = formIdToDialog[formId];
@@ -587,7 +570,7 @@ $(document).ready(function() {
                 data = jQuery.parseJSON(data);
                 if (data["status"] == "ERROR") {
                     // FIXME to show on GUI
-                    var msg = $('<li class="message info"><div style="float:left">Successfully updated "Splunk_TA_kafka". </div><div style="clear:both"></div></li>');
+                    var msg = $('<li class="message info"><div style="float:left">Successfully updated "Splunk_TA_google". </div><div style="clear:both"></div></li>');
                     $(".MessageList").append(msg);
                     console.log("Failed");
                 }
