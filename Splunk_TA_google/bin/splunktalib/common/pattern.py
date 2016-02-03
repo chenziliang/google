@@ -6,6 +6,7 @@ Commonly used design partten for python user, includes:
 """
 
 from functools import wraps
+import traceback
 
 
 def singleton(class_):
@@ -33,5 +34,16 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(
                 *args, **kwargs)
-            print cls
         return cls._instances[cls]
+
+
+def catch_all(logger):
+    def catch_all_call(func):
+        def __call__(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                logger.error("Failed to execute function=%s, error=%s",
+                             func.__name__, traceback.format_exc())
+        return __call__
+    return catch_all_call

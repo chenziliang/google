@@ -13,12 +13,15 @@ configuration page.
 import json
 import splunk.clilib.cli_common as scc
 import splunk.admin as admin
+from base64 import b64encode
+from base64 import b64decode
 
 
 import splunktalib.common.util as utils
 import splunktalib.common.log as log
 from splunktalib.conf_manager import ta_conf_manager as ta_conf
 from splunktalib.conf_manager import conf_manager as conf
+import splunktalib.common.pattern as scp
 import google_ta_common.google_consts as c
 import pubsub_mod.google_pubsub_consts as gpc
 
@@ -41,9 +44,9 @@ class ConfigApp(admin.MConfigHandler):
         c.data_collection_settings: True,
     }
 
-    cred_fields = (gpc.google_credentials,)
-    encrypt_fields = (gpc.google_credentials, c.proxy_username,
-                      c.proxy_password)
+    # encrypt_fields = (gpc.google_credentials, c.proxy_username,
+    #                  c.proxy_password)
+    encrypt_fields = (c.proxy_username, c.proxy_password)
 
     confs = ((c.credential_settings, c.myta_cred_conf),
              (c.data_collection_settings, c.myta_data_collection_conf))
@@ -61,6 +64,7 @@ class ConfigApp(admin.MConfigHandler):
                                     app_name=self.appName)
         reload_confs(conf_mgr)
 
+    @scp.catch_all(logger)
     def handleList(self, confInfo):
         logger.info("start list")
 
@@ -85,10 +89,14 @@ class ConfigApp(admin.MConfigHandler):
             ta_conf_mgr.set_encrypt_keys(self.encrypt_fields)
             settings = ta_conf_mgr.all(return_acl=False)
             if settings:
+                for setting in settings.itervalues():
+                    cred = setting.get(gpc.google_credentials)
+                    if cred:
+                        setting[gpc.google_credentials] = b64decode(cred)
                 self._setNoneValues(settings)
                 all_settings.update({name: settings})
 
-        # self._clearPasswords(all_settings, self.cred_fields)
+        # self._clearPasswords(all_settings, self.encrypt_fields)
 
         all_settings = json.dumps(all_settings)
         all_settings = utils.escape_json_control_chars(all_settings)
@@ -96,6 +104,7 @@ class ConfigApp(admin.MConfigHandler):
 
         logger.info("end list")
 
+    @scp.catch_all(logger)
     def handleEdit(self, confInfo):
         logger.info("start edit")
 
@@ -135,6 +144,10 @@ class ConfigApp(admin.MConfigHandler):
 
         for name, settings in all_creds.iteritems():
             settings[c.name] = name
+            cred = settings.get(gpc.google_credentials)
+            if cred:
+                settings[gpc.google_credentials] = b64encode(cred)
+
             if name not in all_origin_creds:
                 logger.info("new %s stanza", name)
                 ta_conf_mgr.create(settings)

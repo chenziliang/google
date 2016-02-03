@@ -424,29 +424,144 @@ $(document).ready(function() {
         registerBtnClickHandler(dialogId);
     }
 
-    function populate_credential_dropdowns(column) {
-        var options = ""
+    function getCredentials(credName) {
+        var data = tables.credTable.data;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i][0] == credName) {
+                return btoa(data[i][1]);
+            }
+        }
+        return "";
+    };
+
+    function reinitDropdowns() {
+        var ids = [
+            ["#google_project", "Select Google PubSub project"],
+            ["#google_subscription", "Select Google PubSub subscription"]
+        ];
+        for (var i = 0; i < ids.length; i++) {
+            $(ids[i][0])
+                .find("option")
+                .remove()
+                .end()
+                .append($("<option></option>")
+                        .attr("value", "placeholder")
+                        .text(ids[i][1]));
+            disable(ids[i][0]);
+        }
+    };
+
+    function handleCredSelection(e) {
+        var cred = getCredentials($(this).val());
+        if (!cred) {
+            reinitDropdowns();
+            return;
+        }
+
+        var payload = {
+            type: "GET",
+            async: true,
+            url: "/custom/Splunk_TA_google/proxy/servicesNS/admin/Splunk_TA_google/splunk_ta_google/google_projects?output_mode=json&count=-1&google_credentials=" + cred,
+            success: function(data) {
+                if (data.entry === undefined || data.entry.length == 0) {
+                    // FIXME
+                    return false;
+                }
+                $.each(data.entry[0].content.projects, function(key, value) {
+                     $("#google_project").append(
+                         $("<option></option>")
+                         .attr("value", value)
+                         .text(value));
+                });
+                enable("#google_project");
+            },
+            error: function(data) {
+                // FIXME
+                console.log(data);
+            }
+        };
+        $.ajax(payload);
+    };
+
+    function handleProjectSelection(e) {
+        var project = $("#google_project").val();
+        if (project == "placeholder") {
+            return;
+        }
+
+        var cred = getCredentials($("#google_credentials_name").val());
+
+        var payload = {
+            type: "GET",
+            async: true,
+            url: "/custom/Splunk_TA_google/proxy/servicesNS/admin/Splunk_TA_google/splunk_ta_google/google_subscriptions?output_mode=json&count=-1&google_project=" + project + "&google_credentials=" + cred,
+            success: function(data) {
+                if (data.entry === undefined || data.entry.length == 0) {
+                    // FIXME
+                    return false;
+                }
+                $.each(data.entry[0].content.subscriptions, function(key, value) {
+                     $("#google_subscription").append(
+                         $("<option></option>")
+                         .attr("value", value)
+                         .text(value));
+                });
+                enable("#google_subscription");
+            },
+            error: function(data) {
+                // FIXME
+                console.log(data);
+            }
+        };
+        $.ajax(payload);
+    };
+
+    function populateCredentialDropdowns(column) {
+        var options = '<option value="placeholder">--- Select Google Credentials ---</option>';
         var data = tables.credTable.data;
         for (var i = 0; i < data.length; i++) {
             options += '<option value="' + data[i][0] + '">' + data[i][0] + '</option>';
         }
         var dropdown_html = '<select name="' + column.name_with_desc + '" id="' + column.id + '" ' + column.required + '>' + options + '</select>';
-        return dropdown_html;
+        var input = $(dropdown_html);
+        setTimeout(function() {
+            $("#" + column.id).change(handleCredSelection);
+        }, 1000);
+        return input;
     };
 
-    function populate_google_project_dropdowns(column) {
-        var options = "";
+    function disable(id) {
+        $(id).prop("disabled", true);
+        $(id).addClass("disabled");
+    };
+
+    function enable(id) {
+        $(id).removeClass("disabled");
+        $(id).prop("disabled", false);
+    };
+
+    function doPopulateDropdowns(column, msg) {
+        var options = '<option value="placeholder">--- ' + msg + ' ---</option>';
+        // var options = "";
         var dropdown_html = '<select name="' + column.name_with_desc + '" id="' + column.id + '" ' + column.required + '>' + options + '</select>';
-        return dropdown_html;
+        setTimeout(function() {
+            disable("#" + column.id);
+        }, 1000);
+
+        return $(dropdown_html);
     };
 
-    function populate_google_subscription_dropdowns(column) {
-        var options = "";
-        var dropdown_html = '<select name="' + column.name_with_desc + '" id="' + column.id + '" ' + column.required + '>' + options + '</select>';
-        return dropdown_html;
+    function populateGoogleProjectDropdowns(column) {
+        var res = doPopulateDropdowns(column, "Select Google PubSub project");
+        setTimeout(function() {
+            $("#" + column.id).change(handleProjectSelection);
+        }, 1000);
+        return res;
     };
 
-
+    function populateGoogleSubscriptionDropdowns(column) {
+        return doPopulateDropdowns(column, "Select Google PubSub Subscription");
+    };
 
     function enjectDialogForm(dialogId, formId, cols) {
         var form = $("#" + formId);
@@ -469,14 +584,11 @@ $(document).ready(function() {
             // FIXME not generic code here
             var input = undefined;
             if (column.id == "google_credentials_name") {
-                var dropdowns = populate_credential_dropdowns(column);
-                input = $(dropdowns);
+                input = populateCredentialDropdowns(column);
             } else if (column.id == "google_project") {
-                var dropdowns = populate_google_project_dropdowns(column);
-                input = $(dropdowns);
+                input = populateGoogleProjectDropdowns(column);
             } else if (column.id == "google_subscription") {
-                var dropdowns = populate_google_subscription_dropdowns(column);
-                input = $(dropdowns);
+                input = populateGoogleSubscriptionDropdowns(column);
             }else {
                 input = $("<input type='" + type + "' name='" + column.name_with_desc + "' id='" + column.id + "' " + column.required + "/>");
             }
@@ -506,6 +618,7 @@ $(document).ready(function() {
             "credForm": dialogs.credDialog,
             "dataCollectionForm": dialogs.dataCollectionDialog,
         }
+        console.log(formId);
 
         var dialog = formIdToDialog[formId];
         var label = $("label[for='" + dialog.table.columns[0].id + "']");

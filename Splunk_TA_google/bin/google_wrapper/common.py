@@ -23,6 +23,8 @@ def create_google_client(config):
         "google_project": xxx,
         "google_subscription": xxx,
         "scopes": xxx,
+        "service_name": xxx,
+        "version": xxx,
     }
     """
 
@@ -38,5 +40,6 @@ def create_google_client(config):
     http = sr.build_http_connection(
         config, timeout=config.get("pulling_interval", 30))
     client = discovery.build(
-        "pubsub", "v1", http=http, credentials=credentials)
+        config["service_name"], config["version"], http=http,
+        credentials=credentials)
     return client

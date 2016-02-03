@@ -301,3 +301,6 @@ table tbody tr:hover{
     z-index: 500;
     display:none;
 }
+
+.disabled {border: 1px solid #999; color: #333; opacity: 0.5;}
+.disabled option {color: #000; opacity: 1;}

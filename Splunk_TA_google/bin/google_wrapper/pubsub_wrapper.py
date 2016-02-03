@@ -42,6 +42,8 @@ class GooglePubSub(object):
 
         self._config = config
         self._config["scopes"] = PUBSUB_SCOPES
+        self._config["service_name"] = "pubsub"
+        self._config["version"] = "v1"
         self._logger = logger
         self._client = gwc.create_google_client(self._config)
 
@@ -105,9 +107,35 @@ class GooglePubSub(object):
         topic = get_full_topic_name(
             self._config["google_project"], self._config["google_topic"])
         messages = [{"data": base64.b64encode(msg)} for msg in messages]
-        body = {'messages': messages}
+        body = {"messages": messages}
         return self._client.projects().topics().publish(
             topic=topic, body=body).execute(num_retries=3)
+
+    def subscriptions(self, project_name):
+        """
+        return a list of subscriptions
+        {
+        "topic": "projects/zlchenken/topics/test_topic",
+        "ackDeadlineSeconds": 10,
+        "pushConfig": {},
+        "name": "projects/zlchenken/subscriptions/sub_test_topic"
+        }
+        """
+
+        project = "projects/{project}".format(project=project_name)
+        try:
+            result = self._client.projects().subscriptions().list(
+                project=project).execute(num_retries=3)
+        except Exception:
+            self._logger.error("Failed to list Google subscriptions for "
+                               "project=%s, error=%s",
+                               project_name,  traceback.format_exc())
+            raise
+
+        if result:
+            return result["subscriptions"]
+        else:
+            return []
 
 
 if __name__ == "__main__":
@@ -127,13 +155,16 @@ if __name__ == "__main__":
         "base64encoded": True,
     }
 
+    ps = GooglePubSub(logger, config)
+    ps.subscriptions("zlchenken")
+
     def pub():
         ps = GooglePubSub(logger, config)
         for i in range(10):
             messages = ["i am counting {} {}".format(i, j) for j in range(10)]
             print "publishing ", messages
             ps.publish_messages(messages)
-            #time.sleep(1)
+            # time.sleep(1)
 
     pubthr = threading.Thread(target=pub)
     pubthr.start()
