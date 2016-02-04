@@ -40,9 +40,12 @@ global_settings = "global_settings"
 proxy_settings = "proxy_settings"
 credential_settings = "credential_settings"
 data_collection_settings = "data_collection_settings"
+node_settings = "node_settings"
 
 all_settings = "all_settings"
 myta_settings = "google_settings"
 myta_cred_conf = "google_credentials.conf"
 myta_data_collection_conf = "google_inputs.conf"
 myta_global_settings_conf = "google_global_settings.conf"
+
+splunk_ta_google = "splunk_ta_google"

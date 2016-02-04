@@ -85,7 +85,7 @@ class GooglePubSubDataLoader(object):
         while not self._stopped:
             try:
                 for msgs in sub.pull_messages():
-                    if not self._stopped:
+                    if not self._stopped and msgs:
                         self._index_messages(msgs, msgs_metrics)
                         sub.ack_messages(msgs)
                     else:

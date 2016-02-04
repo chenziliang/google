@@ -31,6 +31,9 @@ class TAConfManager(object):
             owner="nobody", realm=appname)
         self._keys = None
 
+    def set_conf_file(self, conf_file):
+        self._conf_file = conf.conf_file2name(conf_file)
+
     def set_appname(self, appname):
         """
         This are cases we need edit/remove/create confs in different app

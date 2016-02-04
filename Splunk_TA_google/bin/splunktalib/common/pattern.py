@@ -37,7 +37,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def catch_all(logger):
+def catch_all(logger, reraise=True):
     def catch_all_call(func):
         def __call__(*args, **kwargs):
             try:
@@ -45,5 +45,7 @@ def catch_all(logger):
             except Exception:
                 logger.error("Failed to execute function=%s, error=%s",
                              func.__name__, traceback.format_exc())
+                if reraise:
+                    raise
         return __call__
     return catch_all_call

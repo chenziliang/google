@@ -59,7 +59,9 @@ class GooglePubSub(object):
             "maxMessages": self._config.get("batch_size", 100)
         }
 
-        base64encoded = self._config.get("base64encoded")
+        base64encoded = str(self._config.get("base64encoded", ""))
+        base64encoded = base64encoded.lower() in ["1", "true", "t", "yes", "y"]
+
         while 1:
             try:
                 resp = self._client.projects().subscriptions().pull(
@@ -68,6 +70,7 @@ class GooglePubSub(object):
             except ssl.SSLError as e:
                 if "timed out" in e.message:
                     yield []
+                    continue
             except Exception:
                 self._logger.error(
                     "Failed to pull messages from subscription=%s, error=%s",
@@ -83,7 +86,11 @@ class GooglePubSub(object):
                 for message in messages:
                     msg = message.get("message")
                     if msg and msg.get("data"):
-                        msg["data"] = base64.b64decode(str(msg["data"]))
+                        try:
+                            msg["data"] = base64.b64decode(str(msg["data"]))
+                        except TypeError:
+                            logger.error(
+                                "Invalid base64 event=%s", msg["data"])
 
             yield messages
 
@@ -160,11 +167,11 @@ if __name__ == "__main__":
 
     def pub():
         ps = GooglePubSub(logger, config)
-        for i in range(10):
+        for i in range(1000 * 1000):
             messages = ["i am counting {} {}".format(i, j) for j in range(10)]
             print "publishing ", messages
             ps.publish_messages(messages)
-            # time.sleep(1)
+            time.sleep(1)
 
     pubthr = threading.Thread(target=pub)
     pubthr.start()
@@ -173,10 +180,10 @@ if __name__ == "__main__":
         ps = GooglePubSub(logger, config)
         for messages in ps.pull_messages():
             print "consuming", messages
-            ps.ack_messages(messages)
+            # ps.ack_messages(messages)
 
     subthr = threading.Thread(target=sub)
-    subthr.start()
+    #subthr.start()
 
     pubthr.join()
-    subthr.join()
+    #subthr.join()

@@ -26,6 +26,9 @@ class FileMonitor(object):
                 logger.debug("Getmtime for %s, failed: %s",
                              k, traceback.format_exc())
 
+    def __call__(self):
+        self.check_changes()
+
     def check_changes(self):
         logger.debug("Checking files=%s", self._files)
         file_mtimes = self.file_mtimes

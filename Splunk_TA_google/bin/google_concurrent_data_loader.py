@@ -4,17 +4,17 @@ from multiprocessing import Manager
 from multiprocessing import Process
 import os
 
+from splunktalib.common import log
+logger = log.Logs().get_logger("main")
+
 import splunktalib.event_writer as ew
 import splunktalib.timer_queue as tq
+import splunktalib.common.util as scutil
 import splunktalib.orphan_process_monitor as opm
-from splunktalib.common import log
 
 import pubsub_mod.google_pubsub_data_loader as gdl
 import pubsub_mod.google_pubsub_consts as gpc
-
 import google_ta_common.google_consts as ggc
-
-logger = log.Logs().get_logger("main")
 
 
 def create_data_loader(config):
@@ -29,9 +29,9 @@ def create_data_loader(config):
 
 
 def create_event_writer(config, process_safe):
-    if config.get(ggc.use_hec):
+    if scutil.is_true(config.get(ggc.use_hec)):
         return ew.HecEventWriter(config)
-    elif config.get(ggc.use_raw_hec):
+    elif scutil.is_true(config.get(ggc.use_raw_hec)):
         return ew.RawHecEventWriter(config)
     else:
         return ew.ModinputEventWriter(process_safe=process_safe)
@@ -89,6 +89,9 @@ class GoogleConcurrentDataLoader(object):
         self._worker.start()
         logger.info("GoogleConcurrentDataLoader started.")
 
+    def tear_down(self):
+        self.stop()
+
     def stop(self):
         if not self._started:
             return
@@ -142,6 +145,9 @@ class GoogleDataLoaderManager(object):
         self._timer_queue.tear_down()
 
         logger.info("GoogleDataLoaderManager stopped")
+
+    def tear_down(self):
+        self.stop()
 
     def stop(self):
         self._stop_signaled = True

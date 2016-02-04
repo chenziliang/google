@@ -11,11 +11,13 @@ configuration page.
 """
 
 import json
-import splunk.clilib.cli_common as scc
-import splunk.admin as admin
 from base64 import b64encode
 from base64 import b64decode
 
+import splunk.clilib.cli_common as scc
+import splunk.admin as admin
+
+import google_rest_import_guard as grig
 
 import splunktalib.common.util as utils
 import splunktalib.common.log as log
@@ -99,7 +101,7 @@ class ConfigApp(admin.MConfigHandler):
         # self._clearPasswords(all_settings, self.encrypt_fields)
 
         all_settings = json.dumps(all_settings)
-        all_settings = utils.escape_json_control_chars(all_settings)
+        # all_settings = utils.unescape_json_control_chars(all_settings)
         confInfo[c.myta_settings].append(c.all_settings, all_settings)
 
         logger.info("end list")
@@ -108,8 +110,9 @@ class ConfigApp(admin.MConfigHandler):
     def handleEdit(self, confInfo):
         logger.info("start edit")
 
-        all_settings = utils.escape_json_control_chars(
-            self.callerArgs.data[c.all_settings][0])
+        # all_settings = utils.escape_json_control_chars(
+        #    self.callerArgs.data[c.all_settings][0])
+        all_settings = self.callerArgs.data[c.all_settings][0]
         all_settings = json.loads(all_settings)
         proxy_settings = all_settings[c.proxy_settings]
         if utils.is_false(proxy_settings.get(c.proxy_enabled, None)):

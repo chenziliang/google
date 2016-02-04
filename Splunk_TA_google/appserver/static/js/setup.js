@@ -206,17 +206,17 @@ $(document).ready(function() {
         hideColumns(tableId, cols);
     };
 
-    function showDialog(dialogId){
+    function showDialog(dialogId) {
         $("." + dialogId).css("display", "block");
         $(".shadow").css("display", "block");
     };
 
-    function hideDialog(dialogId){
+    function hideDialog(dialogId) {
         $("." + dialogId).css("display", "none");
         $(".shadow").css("display", "none");
     };
 
-    function hideDialogHandler(e){
+    function hideDialogHandler(e) {
         var btnIdToDialogId = {
             "credDialogBtnCancel": "credDialog",
             "dataCollectionDialogBtnCancel": "dataCollectionDialog",
@@ -225,8 +225,21 @@ $(document).ready(function() {
         return false;
     };
 
+    function verifyDialogHandler(e) {
+        if (e.target.id == "dataCollectionDialogBtnSave") {
+            var ids = ["#google_project", "#google_subscription"];
+            for (var i = 0; i < ids.length; i++) {
+                if ($(ids[i]).val() == "placeholder") {
+                    // FIXME more GUI hint
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
     function clearFlag(){
-        $("table thead td span").each(function(){
+        $("table thead td span").each(function() {
             $(this).removeClass("asque");
             $(this).removeClass("desque");
         });
@@ -327,14 +340,14 @@ $(document).ready(function() {
         id: "credName",
         name: "Name",
         name_with_desc: "Google Credential Name",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }, {
         id: "google_credentials",
         name: "Google Credentials",
         name_with_desc: "Google Service Credentials (json format)",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }];
@@ -343,35 +356,35 @@ $(document).ready(function() {
         id: "dataCollectionName",
         name: "Name",
         name_with_desc: "Data Collection Name",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }, {
         id: "google_credentials_name",
         name: "Google Credentials",
         name_with_desc: "Google Credentials",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }, {
         id: "google_project",
         name: "Google Project",
         name_with_desc: "Project Name",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }, {
         id: "google_subscription",
         name: "Google Topic Subscription",
         name_with_desc: "Topic Subscription",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }, {
         id: "index",
         name: "Index",
         name_with_desc: "Index",
-        required: "true",
+        required: "required",
         hide: false,
         dialogHide: false,
     }];
@@ -571,7 +584,7 @@ $(document).ready(function() {
             }
             var container = $("<div></div>");
             var label = undefined;
-            if (column.required == "true") {
+            if (column.required == "required") {
                 label = $("<label for='" + column.id + "'>" + column.name_with_desc + '<span class="requiredAsterisk"> *</span></label>');
             } else {
                 label = $("<label for='" + column.id + "'>" + column.name_with_desc + "</label>");
@@ -605,6 +618,7 @@ $(document).ready(function() {
         container.append($("<button id='" + cancelBtnId + "' <span>Cancel</span></button>"));
         form.append(container);
         $("#" + cancelBtnId).click(hideDialogHandler);
+        $("#" + saveBtnId).click(verifyDialogHandler);
     };
 
     function submitHandler(event) {
@@ -618,13 +632,12 @@ $(document).ready(function() {
             "credForm": dialogs.credDialog,
             "dataCollectionForm": dialogs.dataCollectionDialog,
         }
-        console.log(formId);
 
         var dialog = formIdToDialog[formId];
         var label = $("label[for='" + dialog.table.columns[0].id + "']");
 
-        label.text(dialog.table.columns[0].name + ": ");
-        label.css("color", "black");
+        // label.text(dialog.table.columns[0].name + ": ");
+        // label.css("color", "black");
 
         var row = [];
         dialog.table.columns.forEach(function(c, i){

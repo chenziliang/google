@@ -46,7 +46,6 @@ class GoogleSubscriptions(admin.MConfigHandler):
                          for sub in ps.subscriptions(project)]
         conf_info["google_subscriptions"].append(
             "subscriptions", subscriptions)
-        logger.info(subscriptions)
         logger.info("end list google subscriptions")
 
 
