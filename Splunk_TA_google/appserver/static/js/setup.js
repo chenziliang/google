@@ -447,21 +447,37 @@ $(document).ready(function() {
         return "";
     };
 
+
+    function initDropdownOptions(oid, text) {
+        $(oid)
+            .find("option")
+            .remove()
+            .end()
+            .append($("<option></option>")
+                    .attr("value", "placeholder")
+                    .text(text));
+    };
+
     function reinitDropdowns() {
         var ids = [
-            ["#google_project", "Select Google PubSub project"],
-            ["#google_subscription", "Select Google PubSub subscription"]
+            ["#google_project", "--- Select Google PubSub project ---"],
+            ["#google_subscription", "--- Select Google PubSub subscription ---"]
         ];
         for (var i = 0; i < ids.length; i++) {
-            $(ids[i][0])
-                .find("option")
-                .remove()
-                .end()
-                .append($("<option></option>")
-                        .attr("value", "placeholder")
-                        .text(ids[i][1]));
+            initDropdownOptions(ids[i][0], ids[i][1]);
             disable(ids[i][0]);
         }
+    };
+
+    function reinitCredentialDropdowns() {
+        initDropdownOptions("#google_credentials_name", "--- Select Google Credentials ---");
+        var data = tables.credTable.data;
+        $.each(data, function(key, value) {
+            $("#google_credentials_name").append(
+                $("<option></option>")
+                .attr("value", value[0])
+                .text(value[0]));
+        });
     };
 
     function handleCredSelection(e) {
@@ -675,6 +691,7 @@ $(document).ready(function() {
         dialog.table.dataMap[row[0]] = row;
         updateTable(dialog.table.id, dialog.table.data, dialog.table.columns);
         hideDialog(dialog.id);
+        reinitCredentialDropdowns();
         clearFlag();
     }
 
@@ -688,7 +705,7 @@ $(document).ready(function() {
                 }
             });
         }
-    }, 3000);
+    }, 1000);
 
     $("#enable_proxy_id").on("change", showHideProxy);
     showHideProxy();

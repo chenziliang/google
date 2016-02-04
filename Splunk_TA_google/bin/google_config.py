@@ -31,7 +31,6 @@ def _get_conf_files():
                  c.myta_data_collection_conf]
     for f in all_confs:
         files.append(op.join(cur_dir, "local", f))
-    logger.info(files)
     return files
 
 
