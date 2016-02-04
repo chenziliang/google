@@ -471,11 +471,13 @@ $(document).ready(function() {
             return;
         }
 
+        var msg_div = $("#div_google_project .msg");
         var payload = {
             type: "GET",
             async: true,
             url: "/custom/Splunk_TA_google/proxy/servicesNS/admin/Splunk_TA_google/splunk_ta_google/google_projects?output_mode=json&count=-1&google_credentials=" + cred,
             success: function(data) {
+                msg_div.attr("style", "display: none;");
                 if (data.entry === undefined || data.entry.length == 0) {
                     // FIXME
                     return false;
@@ -489,10 +491,12 @@ $(document).ready(function() {
                 enable("#google_project");
             },
             error: function(data) {
-                // FIXME
-                console.log(data);
+                msg_div.text('Error. Run "index=_internal source=*google_custom_rest* ERROR" to check the detail errors');
+                msg_div.css("color", "red");
             }
         };
+        msg_div.text("Populating projects...");
+        msg_div.attr("style", "display: block;");
         $.ajax(payload);
     };
 
@@ -503,12 +507,14 @@ $(document).ready(function() {
         }
 
         var cred = getCredentials($("#google_credentials_name").val());
+        var msg_div = $("#div_google_subscription .msg");
 
         var payload = {
             type: "GET",
             async: true,
             url: "/custom/Splunk_TA_google/proxy/servicesNS/admin/Splunk_TA_google/splunk_ta_google/google_subscriptions?output_mode=json&count=-1&google_project=" + project + "&google_credentials=" + cred,
             success: function(data) {
+                msg_div.attr("style", "display: none;");
                 if (data.entry === undefined || data.entry.length == 0) {
                     // FIXME
                     return false;
@@ -522,10 +528,12 @@ $(document).ready(function() {
                 enable("#google_subscription");
             },
             error: function(data) {
-                // FIXME
-                console.log(data);
+                msg_div.text('Error. Run "index=_internal source=*google_custom_rest* ERROR" to check the detail errors');
+                msg_div.css("color", "red");
             }
         };
+        msg_div.text("Populating subscriptions...");
+        msg_div.attr("style", "display: block;");
         $.ajax(payload);
     };
 
@@ -607,6 +615,10 @@ $(document).ready(function() {
             }
             container.append(label);
             container.append(input);
+            var div = $('<div id="div_' + column.id +  '"></div>');
+            div.append(input);
+            div.append($('<div class="msg"></div>'))
+            container.append(div);
             container.append($("</br>"));
             form.append(container);
             form.append("<br><br>");
