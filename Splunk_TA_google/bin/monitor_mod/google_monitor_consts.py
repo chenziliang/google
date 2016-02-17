@@ -1,0 +1,10 @@
+role = "role"
+dispatchers = "dispatchers"
+dispatcher = "dispatcher"
+worker = "worker"
+dispatcher_worker = "dispatcher_worker"
+
+google_project = "google_project"
+google_metric = "google_topic"
+google_credentials = "google_credentials"
+google_credentials_name = "google_credentials_name"
