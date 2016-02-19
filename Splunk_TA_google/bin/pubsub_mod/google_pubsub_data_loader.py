@@ -34,7 +34,7 @@ class GooglePubSubDataLoader(object):
 
         self._config = config
         self._source = "{project}:{subscription}".format(
-            project=self._config[gpc.google_project],
+            project=self._config[ggc.google_project],
             subscription=self._config[gpc.google_subscription])
         self._running = False
         self._stopped = False
@@ -54,22 +54,22 @@ class GooglePubSubDataLoader(object):
             return
         self._running = True
 
-        logger.info("Start indexing data for project=%s, subscription=%s",
-                    self._config[gpc.google_project],
+        logger.info("Start collecting data for project=%s, subscription=%s",
+                    self._config[ggc.google_project],
                     self._config[gpc.google_subscription])
         while not self._stopped:
             try:
                 self._do_safe_index()
             except Exception:
                 logger.error(
-                    "Failed to index data for project=%s, subscription=%s, "
-                    "error=%s", self._config[gpc.google_project],
+                    "Failed to collect data for project=%s, subscription=%s, "
+                    "error=%s", self._config[ggc.google_project],
                     self._config[gpc.google_subscription],
                     traceback.format_exc())
                 time.sleep(2)
                 continue
-        logger.info("End of indexing data for project=%s, subscription=%s",
-                    self._config[gpc.google_project],
+        logger.info("End of collecting data for project=%s, subscription=%s",
+                    self._config[ggc.google_project],
                     self._config[gpc.google_subscription])
 
     def _do_safe_index(self):
@@ -93,7 +93,7 @@ class GooglePubSubDataLoader(object):
             except Exception:
                 logger.error(
                     "Failed to pull message from project=%s, subscription=%s, "
-                    "error=%s", self._config[gpc.google_project],
+                    "error=%s", self._config[ggc.google_project],
                     self._config[gpc.google_subscription],
                     traceback.format_exc())
                 time.sleep(2)
@@ -106,7 +106,7 @@ class GooglePubSubDataLoader(object):
         if current_count >= msgs_metrics["record_report_threshhold"]:
             logger.info(
                 "index %s events for project=%s, subscription=%s takes "
-                "time=%s", self._config[gpc.google_project],
+                "time=%s", self._config[ggc.google_project],
                 self._config[gpc.google_subscription], current_count,
                 time.time() - msgs_metrics["record_report_start"])
             msgs_metrics["record_report_start"] = time.time()
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         ggc.server_uri: "https://localhost:8089",
         ggc.server_host: "localhost",
         ggc.index: "main",
-        gpc.google_project: "zlchenken",
+        ggc.google_project: "zlchenken",
         gpc.google_topic: "test_topic",
         gpc.google_subscription: "sub_test_topic",
         gpc.batch_count: 10,

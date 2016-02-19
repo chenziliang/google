@@ -7,6 +7,9 @@ import datetime
 import sys
 import gc
 import urllib
+import re
+from contextlib import contextmanager
+import itertools
 
 
 def handle_tear_down_signals(callback):
@@ -100,7 +103,6 @@ def unescape_json_control_chars(json_str):
     return json_str
 
 
-
 def disable_stdout_buffer():
     os.environ["PYTHONUNBUFFERED"] = "1"
     sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 0)
@@ -109,3 +111,29 @@ def disable_stdout_buffer():
 
 def format_stanza_name(name):
     return urllib.quote(name.encode("utf-8"), "")
+
+
+def extract_hostname_port(uri):
+    assert uri
+
+    hostname, port = None, None
+
+    if uri.startswith("https://"):
+        uri = uri[8:]
+    elif uri.startswith("http://"):
+        uri = uri[7:]
+
+    m = re.search(r"([^/:]+):(\d+)", uri)
+    if m:
+        hostname = m.group(1)
+        port = m.group(2)
+    return hostname, port
+
+
+@contextmanager
+def save_and_restore(stanza, keys, exceptions=()):
+    vals = [stanza.get(key) for key in keys]
+    yield
+    for key, val in itertools.izip(keys, vals):
+        if (key, val) not in exceptions:
+            stanza[key] = val

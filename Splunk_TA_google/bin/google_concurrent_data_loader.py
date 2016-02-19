@@ -12,14 +12,16 @@ import splunktalib.timer_queue as tq
 import splunktalib.common.util as scutil
 import splunktalib.orphan_process_monitor as opm
 
-import pubsub_mod.google_pubsub_data_loader as gdl
+import pubsub_mod.google_pubsub_data_loader as gpdl
+import cloud_monitor_mod.google_cloud_monitor_data_loader as gmdl
 import pubsub_mod.google_pubsub_consts as gpc
 import google_ta_common.google_consts as ggc
 
 
 def create_data_loader(config):
     service_2_data_loader = {
-        ggc.google_pubsub: gdl.GooglePubSubDataLoader,
+        ggc.google_pubsub: gpdl.GooglePubSubDataLoader,
+        ggc.google_cloud_monitor: gmdl.GoogleCloudMonitorDataLoader,
     }
 
     assert config.get(ggc.google_service)

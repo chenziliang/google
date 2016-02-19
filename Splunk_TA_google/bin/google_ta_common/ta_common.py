@@ -1,11 +1,13 @@
 import sys
 import datetime
 import time
-
+import os.path as op
 
 import splunktalib.common.util as scutil
 import splunktalib.modinput as mi
 from splunktalib.common import log
+import splunktalib.file_monitor as fm
+
 import google_ta_common.google_consts as ggc
 
 
@@ -146,3 +148,16 @@ def sleep_until(interval, condition):
         if condition():
             return True
     return False
+
+
+def get_conf_files(files):
+    cur_dir = op.dirname(op.dirname(op.abspath(__file__)))
+    files = []
+    all_confs = [ggc.myta_global_settings_conf, ggc.myta_cred_conf] + files
+    for f in all_confs:
+        files.append(op.join(cur_dir, "local", f))
+    return files
+
+
+def create_conf_monitor(callback, files):
+    return fm.FileMonitor(callback, get_conf_files(files))

@@ -164,7 +164,7 @@ if __name__ == "__main__":
     }
 
     ps = GooglePubSub(logger, config)
-    ps.subscriptions("zlchenken")
+    ps.subscriptions()
 
     def pub():
         ps = GooglePubSub(logger, config)

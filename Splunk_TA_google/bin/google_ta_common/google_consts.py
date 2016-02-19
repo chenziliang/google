@@ -34,6 +34,7 @@ polling_interval = "polling_interval"
 
 google_service = "google_service"
 google_pubsub = "google_pubsub"
+google_cloud_monitor = "google_cloud_monitor"
 
 
 global_settings = "global_settings"
@@ -45,7 +46,10 @@ node_settings = "node_settings"
 all_settings = "all_settings"
 myta_settings = "google_settings"
 myta_cred_conf = "google_credentials.conf"
-myta_data_collection_conf = "google_inputs.conf"
 myta_global_settings_conf = "google_global_settings.conf"
+
+google_project = "google_project"
+google_credentials = "google_credentials"
+google_credentials_name = "google_credentials_name"
 
 splunk_ta_google = "splunk_ta_google"
