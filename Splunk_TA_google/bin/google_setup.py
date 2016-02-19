@@ -14,6 +14,7 @@ import json
 from base64 import b64encode
 from base64 import b64decode
 
+
 import splunk.clilib.cli_common as scc
 import splunk.admin as admin
 

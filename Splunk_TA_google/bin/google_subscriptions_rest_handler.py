@@ -40,10 +40,11 @@ class GoogleSubscriptions(admin.MConfigHandler):
         project = self.callerArgs[gpc.google_project][0]
         config = {
             gpc.google_credentials: creds,
+            gpc.google_project: project,
         }
         ps = gpw.GooglePubSub(logger, config)
         subscriptions = [sub["name"].split("/")[-1]
-                         for sub in ps.subscriptions(project)]
+                         for sub in ps.subscriptions()]
         conf_info["google_subscriptions"].append(
             "subscriptions", subscriptions)
         logger.info("end list google subscriptions")

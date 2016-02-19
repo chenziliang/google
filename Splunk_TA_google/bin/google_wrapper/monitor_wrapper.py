@@ -60,8 +60,8 @@ class GoogleCloudMonitor(object):
         {
         "google_project": xxx,
         "google_metric": xxx,
-        "youngest": 2017-01-01T00:00:00-0000,
-        "oldest": 2016-12-31T00:00:00-0000,
+        "oldest": "2016-01-16T00:00:00-00:00",
+        "youngest": "2016-02-16T00:00:00-00:00",
         ...
         }
         return:

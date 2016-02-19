@@ -118,7 +118,7 @@ class GooglePubSub(object):
         return self._client.projects().topics().publish(
             topic=topic, body=body).execute(num_retries=3)
 
-    def subscriptions(self, project_name):
+    def subscriptions(self):
         """
         return a list of subscriptions
         {
@@ -129,6 +129,7 @@ class GooglePubSub(object):
         }
         """
 
+        project_name = self._config["google_project"]
         project = "projects/{project}".format(project=project_name)
         try:
             result = self._client.projects().subscriptions().list(

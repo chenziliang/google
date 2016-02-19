@@ -1,5 +1,4 @@
 import traceback
-import time
 from json import dumps
 
 from splunktalib.common import log
@@ -35,8 +34,7 @@ class GoogleMonitorMetricDataLoader(object):
         self._config = config
         self._source = "{project}:{metric}".format(
             project=self._config[gmc.google_project],
-            subscription=self._config[gmc.google_subscription])
-        self._running = False
+            metric=self._config[gmc.google_metric])
         self._stopped = False
 
     def get_interval(self):
@@ -50,71 +48,39 @@ class GoogleMonitorMetricDataLoader(object):
         self.index_data()
 
     def index_data(self):
-        if self._running:
-            return
-        self._running = True
-
-        logger.info("Start indexing data for project=%s, subscription=%s",
+        logger.info("Start indexing data for project=%s, metric=%s",
                     self._config[gmc.google_project],
-                    self._config[gmc.google_subscription])
-        while not self._stopped:
-            try:
-                self._do_safe_index()
-            except Exception:
-                logger.error(
-                    "Failed to index data for project=%s, subscription=%s, "
-                    "error=%s", self._config[gmc.google_project],
-                    self._config[gmc.google_subscription],
-                    traceback.format_exc())
-                time.sleep(2)
-                continue
-        logger.info("End of indexing data for project=%s, subscription=%s",
+                    self._config[gmc.google_metric])
+        try:
+            self._do_safe_index()
+        except Exception:
+            logger.error(
+                "Failed to index data for project=%s, metric=%s, error=%s",
+                self._config[gmc.google_project],
+                self._config[gmc.google_metric],
+                traceback.format_exc())
+        logger.info("End of indexing data for project=%s, metric=%s",
                     self._config[gmc.google_project],
-                    self._config[gmc.google_subscription])
+                    self._config[gmc.google_metric])
 
     def _do_safe_index(self):
         # 1) Cache max_events in memory before indexing for batch processing
 
-        msgs_metrics = {
-            "current_record_count": 0,
-            "record_report_threshhold": 1000000,
-            "record_report_start": time.time()
+        params = {
+            gmc.google_project: self._config[gmc.google_project],
+            gmc.google_metric: self._config[gmc.google_metric],
+            gmc.youngest: "2016-02-18T00:00:00-00:00",
+            gmc.oldest: "2016-01-01T00:00:00-00:00",
         }
 
-        sub = gpw.GooglePubSub(logger, self._config)
-        while not self._stopped:
-            try:
-                for msgs in sub.pull_messages():
-                    if not self._stopped and msgs:
-                        self._index_messages(msgs, msgs_metrics)
-                        sub.ack_messages(msgs)
-                    else:
-                        break
-            except Exception:
-                logger.error(
-                    "Failed to pull message from project=%s, subscription=%s, "
-                    "error=%s", self._config[gmc.google_project],
-                    self._config[gmc.google_subscription],
-                    traceback.format_exc())
-                time.sleep(2)
-                continue
-        self._running = False
+        # FIXME ckpt, time win
+        mon = gmw.GoogleCloudMonitor(logger, self._config)
+        metrics = mon.list_metrics(params)
+        if metrics:
+            self._write_events(metrics)
 
-    def _index_messages(self, msgs, msgs_metrics):
-        msgs_metrics["current_record_count"] += len(msgs)
-        current_count = msgs_metrics["current_record_count"]
-        if current_count >= msgs_metrics["record_report_threshhold"]:
-            logger.info(
-                "index %s events for project=%s, subscription=%s takes "
-                "time=%s", self._config[gmc.google_project],
-                self._config[gmc.google_subscription], current_count,
-                time.time() - msgs_metrics["record_report_start"])
-            msgs_metrics["record_report_start"] = time.time()
-            msgs_metrics["current_record_count"] = 0
-        self._write_events(msgs)
-
-    def _write_events(self, msgs):
-        msgs_str = [dumps(msg["message"]) for msg in msgs]
+    def _write_events(self, metrics):
+        msgs_str = [dumps(metric) for metric in metrics]
         events = self._config[ggc.event_writer].create_events(
             index=self._config[ggc.index], host="", source=self._source,
             sourcetype="google:pubsub", time="", unbroken=False, done=False,
@@ -123,66 +89,24 @@ class GoogleMonitorMetricDataLoader(object):
 
 
 if __name__ == "__main__":
-    import sys
     import os
-    import logging
-    import threading
+    import splunktalib.event_writer as ew
 
-    class O(object):
-        def write_events(self, index, source, sourcetype, events):
-            for event in events:
-                sys.stdout.write(event)
-                sys.stdout.write("\n")
-
-    logger = logging.getLogger("google")
-    ch = logging.StreamHandler()
-    logger.addHandler(ch)
+    writer = ew.ModinputEventWriter()
+    writer.start()
 
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "zlchenken-78c88c5c115b.json"
     config = {
-        ggc.data_loader: O(),
-        ggc.event_writer: O(),
+        ggc.data_loader: writer,
+        ggc.event_writer: writer,
         ggc.checkpoint_dir: ".",
         ggc.server_uri: "https://localhost:8089",
         ggc.server_host: "localhost",
         ggc.index: "main",
         gmc.google_project: "zlchenken",
-        gmc.google_topic: "test_topic",
-        gmc.google_subscription: "sub_test_topic",
-        gmc.batch_count: 10,
-        gmc.base64encoded: True,
+        gmc.google_metric: "pubsub.googleapis.com/subscription/pull_request_count",
     }
 
-    def pub():
-        ps = gpw.GooglePubSub(logger, config)
-        for i in range(10):
-            messages = ["i am counting {} {}".format(i, j) for j in range(10)]
-            ps.publish_messages(messages)
-            time.sleep(1)
-
-    pubthr = threading.Thread(target=pub)
-    pubthr.start()
-
-    loader = GooglePubSubDataLoader(config)
-
-    subthr = threading.Thread(target=loader.index_data)
-    subthr.start()
-
-    pubthr.join()
-    time.sleep(1)
-    loader.stop()
-    subthr.join()
-
-#    import cProfile
-#    import pstats
-#    import cStringIO
-#
-#    pr = cProfile.Profile()
-#    pr.enable()
-#
-#    pr.disable()
-#    s = cStringIO.StringIO()
-#    sortby = 'cumulative'
-#    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-#    ps.print_stats()
-#    print s.getvalue()
+    loader = GoogleMonitorMetricDataLoader(config)
+    loader.index_data()
+    writer.tear_down()
