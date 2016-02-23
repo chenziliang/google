@@ -1,6 +1,7 @@
 import traceback
 from json import dumps
 import threading
+from datetime import datetime
 
 from splunktalib.common import log
 logger = log.Logs().get_logger("main")
@@ -9,6 +10,7 @@ logger = log.Logs().get_logger("main")
 import google_ta_common.google_consts as ggc
 import google_wrapper.cloud_monitor_wrapper as gmw
 import cloud_monitor_mod.google_cloud_monitor_consts as gmc
+import cloud_monitor_mod.google_cloud_monitor_checkpointer as ckpt
 
 
 class GoogleCloudMonitorDataLoader(object):
@@ -32,15 +34,17 @@ class GoogleCloudMonitorDataLoader(object):
         }
         """
 
+        config[ggc.polling_interval] = int(config[ggc.polling_interval])
         self._config = config
         self._source = "{project}:{metric}".format(
             project=self._config[ggc.google_project],
             metric=self._config[gmc.google_metric])
+        self._store = ckpt.GoogleCloudMonitorCheckpointer(config)
         self._lock = threading.Lock()
         self._stopped = False
 
     def get_interval(self):
-        return int(self._config[ggc.polling_interval])
+        return self._config[ggc.polling_interval]
 
     def get_props(self):
         return self._config
@@ -54,8 +58,9 @@ class GoogleCloudMonitorDataLoader(object):
 
     def index_data(self):
         if self._lock.locked():
-            logger.info("Last time data collect for project=%s, metric=%s is "
-                        "not done", self._config[ggc.google_project],
+            logger.info("Last time of data collection for project=%s, "
+                        "metric=%s is not done",
+                        self._config[ggc.google_project],
                         self._config[gmc.google_metric])
             return
 
@@ -63,9 +68,10 @@ class GoogleCloudMonitorDataLoader(object):
             self._do_index()
 
     def _do_index(self):
-        logger.info("Start collecting data for project=%s, metric=%s",
+        logger.info("Start collecting data for project=%s, metric=%s, from=%s",
                     self._config[ggc.google_project],
-                    self._config[gmc.google_metric])
+                    self._config[gmc.google_metric],
+                    self._store.oldest())
         try:
             self._do_safe_index()
         except Exception:
@@ -83,15 +89,27 @@ class GoogleCloudMonitorDataLoader(object):
         params = {
             ggc.google_project: self._config[ggc.google_project],
             gmc.google_metric: self._config[gmc.google_metric],
-            gmc.youngest: "2016-02-18T00:00:00-00:00",
-            gmc.oldest: "2016-01-01T00:00:00-00:00",
         }
 
-        # FIXME ckpt, time win
         mon = gmw.GoogleCloudMonitor(logger, self._config)
-        metrics = mon.list_metrics(params)
-        if metrics:
-            self._write_events(metrics)
+        now = datetime.utcnow()
+        oldest = ckpt.strp_metric_date(self._store.oldest())
+        polling_interval = self._config[ggc.polling_interval]
+        done = False
+        while not done:
+            youngest, done = ckpt.calculate_youngest(
+                oldest, polling_interval, now)
+            params[gmc.oldest] = ckpt.strf_metric_date(oldest)
+            params[gmc.youngest] = ckpt.strf_metric_date(youngest)
+            logger.debug("Start collecting data for project=%s, metric=%s, "
+                         "win=[%s, %s]", params[gmc.oldest],
+                         params[gmc.youngest])
+
+            metrics = mon.list_metrics(params)
+            if metrics:
+                self._write_events(metrics)
+            self._store.set_oldest(params[gmc.youngest])
+            oldest = youngest
 
     def _write_events(self, metrics):
         msgs_str = [dumps(metric) for metric in metrics]
@@ -119,6 +137,11 @@ if __name__ == "__main__":
         ggc.index: "main",
         ggc.google_project: "zlchenken",
         gmc.google_metric: "pubsub.googleapis.com/subscription/pull_request_count",
+        gmc.oldest: "2016-01-20T00:00:00-00:00",
+        ggc.checkpoint_dir: ".",
+        ggc.polling_interval: 30,
+        ggc.name: "test_cm",
+        ggc.appname: "Splunk_TA_google-cloudplatform",
     }
 
     loader = GoogleCloudMonitorDataLoader(config)
