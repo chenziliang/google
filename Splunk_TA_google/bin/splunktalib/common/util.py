@@ -3,13 +3,15 @@ Copyright (C) 2005-2015 Splunk Inc. All Rights Reserved.
 """
 
 import os
+import os.path as op
 import datetime
 import sys
 import gc
 import urllib
 import re
-from contextlib import contextmanager
 import itertools
+from contextlib import contextmanager
+import xml.sax.saxutils as xss
 
 
 def handle_tear_down_signals(callback):
@@ -19,7 +21,7 @@ def handle_tear_down_signals(callback):
     signal.signal(signal.SIGINT, callback)
 
     if os.name == "nt":
-        signal.signal(signal.SIGBREAK, callback)
+        signal.signal(signal.SIGBREAK, callback)  # pylint: disable=E1101
 
 
 def datetime_to_seconds(dt):
@@ -50,26 +52,27 @@ def remove_http_proxy_env_vars():
 
 
 def get_appname_from_path(absolute_path):
+    absolute_path = op.normpath(absolute_path)
     parts = absolute_path.split(os.path.sep)
     parts.reverse()
-    try:
-        idx = parts.index("apps")
-    except ValueError:
-        return None
-    else:
+    for key in ("apps", "slave-apps", "master-apps"):
         try:
-            if parts[idx + 1] == "etc":
-                return parts[idx - 1]
-            return None
-        except IndexError:
-            return None
+            idx = parts.index(key)
+        except ValueError:
+            continue
+        else:
+            try:
+                if parts[idx + 1] == "etc":
+                    return parts[idx - 1]
+            except IndexError:
+                pass
+            continue
+    return None
 
 
 def escape_cdata(data):
     data = data.encode("utf-8", errors="xmlcharrefreplace")
-    data = data.replace("]]>", "]]&gt;")
-    if data.endswith("]"):
-        data = data[:-1] + "%5D"
+    data = xss.escape(data)
     return data
 
 

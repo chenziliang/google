@@ -26,7 +26,7 @@ class ModinputEvent(object):
                 "<source>{source}</source>"
                 "<sourcetype>{sourcetype}</sourcetype>"
                 "<time>{time}</time>"
-                "<data><![CDATA[{data}]]></data>{done}</event>")
+                "<data>{data}</data>{done}</event>")
 
     event_fmt = base_fmt.replace("{unbroken}", "").replace("{done}", "")
     unbroken_fmt = base_fmt.replace("{unbroken}", ' unbroken="1"').replace(
