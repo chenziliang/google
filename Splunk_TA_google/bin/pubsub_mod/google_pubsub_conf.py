@@ -11,3 +11,7 @@ class GooglePubSubConfig(gconf.GoogleConfig):
     @staticmethod
     def data_collection_conf():
         return gpc.myta_data_collection_conf
+
+    @staticmethod
+    def _metric_key_and_sep():
+        return gpc.google_subscription, ","

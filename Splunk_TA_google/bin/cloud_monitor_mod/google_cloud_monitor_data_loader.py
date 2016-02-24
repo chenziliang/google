@@ -1,5 +1,4 @@
 import traceback
-from json import dumps
 import threading
 from datetime import datetime
 
@@ -95,15 +94,15 @@ class GoogleCloudMonitorDataLoader(object):
         now = datetime.utcnow()
         oldest = ckpt.strp_metric_date(self._store.oldest())
         polling_interval = self._config[ggc.polling_interval]
-        done = False
-        while not done:
+        done, win = False, int(self._config.get("cm_win", 3600))
+        while not done and not self._stopped:
             youngest, done = ckpt.calculate_youngest(
-                oldest, polling_interval, now)
+                oldest, polling_interval, now, win)
             params[gmc.oldest] = ckpt.strf_metric_date(oldest)
             params[gmc.youngest] = ckpt.strf_metric_date(youngest)
-            logger.debug("Start collecting data for project=%s, metric=%s, "
-                         "win=[%s, %s]", params[gmc.oldest],
-                         params[gmc.youngest])
+            logger.debug("Collect data for project=%s, metric=%s, win=[%s, %s]",
+                         params[ggc.google_project], params[gmc.google_metric],
+                         params[gmc.oldest], params[gmc.youngest])
 
             metrics = mon.list_metrics(params)
             if metrics:
@@ -112,11 +111,11 @@ class GoogleCloudMonitorDataLoader(object):
             oldest = youngest
 
     def _write_events(self, metrics):
-        msgs_str = [dumps(metric) for metric in metrics]
+        msgs_str = [metric for metric in metrics]
         events = self._config[ggc.event_writer].create_events(
-            index=self._config[ggc.index], host="", source=self._source,
-            sourcetype="google:pubsub", time="", unbroken=False, done=False,
-            events=msgs_str)
+            index=self._config[ggc.index], host=None, source=self._source,
+            sourcetype="google:cloudmonitor", time=None, unbroken=False,
+            done=False, events=msgs_str)
         self._config[ggc.event_writer].write_events(events)
 
 

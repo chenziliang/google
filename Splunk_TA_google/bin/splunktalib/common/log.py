@@ -17,6 +17,7 @@ def log_enter_exit(logger):
     """
     Log decorator to log function enter and exit
     """
+
     def log_decorator(func):
         def wrapper(*args, **kwargs):
             logger.debug("{} entered.".format(func.__name__))

@@ -151,12 +151,12 @@ def sleep_until(interval, condition):
 
 
 def get_conf_files(files):
-    cur_dir = op.dirname(op.dirname(op.abspath(__file__)))
-    files = []
+    cur_dir = op.dirname(op.dirname(op.dirname(op.abspath(__file__))))
+    all_files = []
     all_confs = [ggc.myta_global_settings_conf, ggc.myta_cred_conf] + files
     for f in all_confs:
-        files.append(op.join(cur_dir, "local", f))
-    return files
+        all_files.append(op.join(cur_dir, "local", f))
+    return all_files
 
 
 def create_conf_monitor(callback, files):

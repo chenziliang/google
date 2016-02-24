@@ -20,6 +20,7 @@ use_kv_store = "use_kv_store"
 use_hec = "use_hec"
 use_raw_hec = "use_raw_hec"
 use_multiprocess = "use_multiprocess"
+hec_port = "hec_port"
 
 log_level = "log_level"
 proxy_hostname = "proxy_hostname"
@@ -52,4 +53,4 @@ google_project = "google_project"
 google_credentials = "google_credentials"
 google_credentials_name = "google_credentials_name"
 
-splunk_ta_google = "splunk_ta_google"
+splunk_ta_google = "Splunk_TA_google-cloudplatform"

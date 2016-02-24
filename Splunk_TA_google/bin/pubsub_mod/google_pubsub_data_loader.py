@@ -1,6 +1,5 @@
 import traceback
 import time
-from json import dumps
 
 from splunktalib.common import log
 logger = log.Logs().get_logger("main")
@@ -114,11 +113,11 @@ class GooglePubSubDataLoader(object):
         self._write_events(msgs)
 
     def _write_events(self, msgs):
-        msgs_str = [dumps(msg["message"]) for msg in msgs]
+        msgs = [msg["message"] for msg in msgs]
         events = self._config[ggc.event_writer].create_events(
-            index=self._config[ggc.index], host="", source=self._source,
-            sourcetype="google:pubsub", time="", unbroken=False, done=False,
-            events=msgs_str)
+            index=self._config[ggc.index], host=None, source=self._source,
+            sourcetype="google:pubsub", time=None, unbroken=False, done=False,
+            events=msgs)
         self._config[ggc.event_writer].write_events(events)
 
 

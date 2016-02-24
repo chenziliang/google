@@ -132,8 +132,12 @@ class ModinputEventWriter(object):
                     continue
 
             if events is not None:
-                for event in events:
-                    write(event.to_string())
+                if isinstance(events, (str, unicode)):
+                    # for legacy interface
+                    write(events)
+                else:
+                    for event in events:
+                        write(event.to_string())
             else:
                 logger.info("ModinputEventWriter got tear down signal")
                 got_shutdown_signal = True
@@ -145,8 +149,8 @@ class HecEventWriter(object):
         """
         :params config: dict
         {
-        "hec_token": required,
-        "server_uri": required,
+        "token": required,
+        "hec_server_uri": required,
         "proxy_hostname": yyy,
         "proxy_url": zz,
         "proxy_port": aa,
@@ -164,9 +168,9 @@ class HecEventWriter(object):
 
     def _compose_uri_headers(self, config):
         self._uri = "{host}/services/collector".format(
-            host=config["server_uri"])
+            host=config["hec_server_uri"])
         self._headers = {
-            "Authorization": "Splunk {}".format(config["hec_token"]),
+            "Authorization": "Splunk {}".format(config["token"]),
             "User-Agent": "curl/7.29.0",
             "Connection": "keep-alive",
         }
@@ -217,9 +221,21 @@ class HecEventWriter(object):
                 time.sleep(2)
         raise last_ex
 
+    def start(self):
+        pass
+
+    def tear_down(self):
+        pass
+
     @staticmethod
     def create_events(index, host, source, sourcetype,
                       time, unbroken, done, events):
+        keys = [index, host, source, sourcetype, time]
+        for i, key in enumerate(keys):
+            if not key:
+                keys[i] = None
+        index, host, source, sourcetype, time = keys
+
         return [
             {
                 "index": index,
@@ -236,19 +252,19 @@ class RawHecEventWriter(HecEventWriter):
     def __init__(self, config):
         """
         :param: config should meet HecEventWriter param and include
-        "hec_channel"
+        "channel"
         """
 
         super(RawHecEventWriter, self).__init__(config)
 
     def _compose_uri_headers(self, config):
         self._uri = "{host}/services/collector/raw".format(
-            host=config["server_uri"])
+            host=config["hec_server_uri"])
         self._headers = {
-            "Authorization": "Splunk {}".format(config["hec_token"]),
+            "Authorization": "Splunk {}".format(config["token"]),
             "User-Agent": "curl/7.29.0",
             "Connection": "keep-alive",
-            "x-splunk-request-channel": "{}".format(config["hec_channel"]),
+            "x-splunk-request-channel": "{}".format(config["channel"]),
         }
 
     def _prepare_events(self, events):
@@ -259,6 +275,15 @@ class RawHecEventWriter(HecEventWriter):
         # FIXME source, sourcetype etc
 
         return events
+
+
+def create_event_writer(config, process_safe=False):
+    if scutil.is_true(config.get("use_hec")):
+        return HecEventWriter(config)
+    elif scutil.is_true(config.get("use_raw_hec")):
+        return RawHecEventWriter(config)
+    else:
+        return ModinputEventWriter(process_safe=process_safe)
 
 
 if __name__ == "__main__":
@@ -289,9 +314,9 @@ if __name__ == "__main__":
 
     import uuid
     config = {
-        "server_uri": "https://10.66.131.135:8088",
-        "hec_token": "BB38C44E-C4EA-4A25-A2BB-D33E2491F007",
-        "hec_channel": str(uuid.uuid4()),
+        "hec_server_uri": "https://localhost:8088",
+        "token": "139979A1-C8DD-42AF-9A8E-A2E91E7D0440",
+        "channel": str(uuid.uuid4()),
     }
 
     writer = HecEventWriter(config)
@@ -302,4 +327,5 @@ if __name__ == "__main__":
         "event": "i love you",
         "time": time.time(),
     }
+
     writer.write_events([event] * 10)

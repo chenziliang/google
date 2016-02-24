@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import splunktalib.state_store as sss
 import google_ta_common.google_consts as ggc
-import cloud_monitor_mod.google_cloud_monitor_consts as gcmc
+import cloud_monitor_mod.google_cloud_monitor_consts as gmc
 
 metric_date_fmt = "%Y-%m-%dT%H:%M:%S"
 
@@ -32,12 +32,12 @@ def strf_metric_date(metric_date):
     return "{}-00:00".format(mdate)
 
 
-def calculate_youngest(oldest, polling_interval, now):
+def calculate_youngest(oldest, polling_interval, now, win=3600):
     """
     return (youngest, done)
     """
 
-    win = max(polling_interval, 600)
+    win = max(polling_interval, win)
     youngest = oldest + timedelta(seconds=win)
     done = False
     if youngest >= now:
@@ -51,7 +51,10 @@ class GoogleCloudMonitorCheckpointer(object):
 
     def __init__(self, config):
         self._config = config
-        self._key = base64.b64encode(config[ggc.name])
+        key = "{stanza_name}|{metric_name}".format(
+            stanza_name=config[ggc.name],
+            metric_name=config[gmc.google_metric])
+        self._key = base64.b64encode(key)
         self._store = sss.get_state_store(
             config, config[ggc.appname], collection_name=self._key,
             use_kv_store=config.get(ggc.use_kv_store))
@@ -61,17 +64,17 @@ class GoogleCloudMonitorCheckpointer(object):
         state = self._store.get_state(self._key)
         if not state:
             state = {
-                gcmc.oldest: strip_off_timezone(self._config[gcmc.oldest]),
+                gmc.oldest: strip_off_timezone(self._config[gmc.oldest]),
                 "version": 1,
             }
         return state
 
     def oldest(self):
-        return self._state[gcmc.oldest]
+        return self._state[gmc.oldest]
 
     def set_oldest(self, oldest, commit=True):
         oldest = strip_off_timezone(oldest)
-        self._state[gcmc.oldest] = oldest
+        self._state[gmc.oldest] = oldest
         if commit:
             self._store.update_state(self._key, self._state)
 

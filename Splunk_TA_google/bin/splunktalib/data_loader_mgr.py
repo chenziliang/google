@@ -7,11 +7,13 @@ import Queue
 import os.path as op
 import ConfigParser
 
+from splunktalib.common import log
+logger = log.Logs().get_logger("util")
+
 import splunktalib.concurrent.concurrent_executor as ce
 import splunktalib.timer_queue as tq
 import splunktalib.schedule.job as sjob
 import splunktalib.common.util as scutil
-from splunktalib.common import log
 from splunktalib import orphan_process_monitor as opm
 
 
@@ -20,20 +22,17 @@ class DataLoaderManager(object):
     Data Loader boots all underlying facilities to handle data collection
     """
 
-    def __init__(self, configs, job_scheduler, event_writer):
+    def __init__(self, config, job_scheduler, event_writer):
         """
-        @configs: a list like object containing a list of dict
+        @config: dict like object
         like object. Each element shall implement dict.get/[] like interfaces
         to get the value for a key.
         @job_scheduler: schedulering the jobs. shall implement get_ready_jobs
         @event_writer: write_events
         """
 
-        self._logger = log.Logs().get_logger(configs.get(
-            "log_file", "util"))
-
-        self._settings = self._read_default_settings(self._logger)
-        self._configs = configs
+        self._settings = self._read_default_settings()
+        self._config = config
         self._event_writer = event_writer
         self._wakeup_queue = Queue.Queue()
         self._scheduler = job_scheduler
@@ -51,7 +50,7 @@ class DataLoaderManager(object):
         self._executor.start()
         self._timer_queue.start()
         self._scheduler.start()
-        self._logger.info("DataLoaderManager started.")
+        logger.info("DataLoaderManager started.")
 
         for job in jobs:
             job.get_props()["event_writer"] = self._event_writer
@@ -76,7 +75,7 @@ class DataLoaderManager(object):
         self._timer_queue.tear_down()
         self._executor.tear_down()
         self._event_writer.tear_down()
-        self._logger.info("DataLoaderManager stopped.")
+        logger.info("DataLoaderManager stopped.")
 
     def _wait_for_tear_down(self):
         wakeup_q = self._wakeup_queue
@@ -87,13 +86,13 @@ class DataLoaderManager(object):
                 go_exit = self._orphan_checker.is_orphan()
 
             if go_exit:
-                self._logger.info("DataLoaderManager got stop signal")
+                logger.info("DataLoaderManager got stop signal")
                 self._started = False
                 break
 
     def tear_down(self):
         self._wakeup_queue.put(True)
-        self._logger.info("DataLoaderManager is going to stop.")
+        logger.info("DataLoaderManager is going to stop.")
 
     def stopped(self):
         return not self._started
@@ -126,7 +125,7 @@ class DataLoaderManager(object):
         self._scheduler.max_delay_time = max_delay
 
     @staticmethod
-    def _read_default_settings(logger):
+    def _read_default_settings():
         cur_dir = op.dirname(op.abspath(__file__))
         setting_file = op.join(cur_dir, "setting.conf")
         parser = ConfigParser.ConfigParser()
@@ -148,7 +147,7 @@ class DataLoaderManager(object):
         return settings
 
 
-def create_data_loader_mgr(configs):
+def create_data_loader_mgr(config):
     """
     create a data loader with default event_writer, job_scheudler
     """
@@ -156,13 +155,8 @@ def create_data_loader_mgr(configs):
     import splunktalib.event_writer as ew
     import splunktalib.schedule.scheduler as sched
 
-    if scutil.is_true(configs.get("use_hec")):
-        writer = ew.HecEventWriter(configs)
-    elif scutil.is_true(configs.get("use_hec_raw")):
-        writer = ew.RawHecEventWriter(configs)
-    else:
-        writer = ew.ModinputEventWriter()
-
+    writer = ew.create_event_writer(
+        config, scutil.is_true(config.get("use_multiprocess")))
     scheduler = sched.Scheduler()
-    loader_mgr = DataLoaderManager(configs, scheduler, writer)
+    loader_mgr = DataLoaderManager(config, scheduler, writer)
     return loader_mgr

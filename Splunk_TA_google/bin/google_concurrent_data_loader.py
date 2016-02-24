@@ -30,15 +30,6 @@ def create_data_loader(config):
     return service_2_data_loader[config[ggc.google_service]](config)
 
 
-def create_event_writer(config, process_safe):
-    if scutil.is_true(config.get(ggc.use_hec)):
-        return ew.HecEventWriter(config)
-    elif scutil.is_true(config.get(ggc.use_raw_hec)):
-        return ew.RawHecEventWriter(config)
-    else:
-        return ew.ModinputEventWriter(process_safe=process_safe)
-
-
 def _wait_for_tear_down(tear_down_q, loader):
     checker = opm.OrphanProcessChecker()
     while 1:
@@ -109,6 +100,7 @@ class GoogleDataLoaderManager(object):
         self._task_configs = task_configs
         self._wakeup_queue = Queue.Queue()
         self._timer_queue = tq.TimerQueue()
+        self._mgr = None
         self._started = False
         self._stop_signaled = False
 
@@ -122,7 +114,8 @@ class GoogleDataLoaderManager(object):
         process_safe = self._use_multiprocess()
         logger.info("Use multiprocessing=%s", process_safe)
 
-        event_writer = create_event_writer(self._task_configs[0], process_safe)
+        event_writer = ew.create_event_writer(
+            self._task_configs[0], process_safe)
         event_writer.start()
 
         tear_down_q = self._create_tear_down_queue(process_safe)
@@ -145,6 +138,9 @@ class GoogleDataLoaderManager(object):
 
         event_writer.tear_down()
         self._timer_queue.tear_down()
+
+        if self._mgr is not None:
+            self._mgr.shutdown()
 
         logger.info("GoogleDataLoaderManager stopped")
 
@@ -172,7 +168,7 @@ class GoogleDataLoaderManager(object):
         if not self._task_configs:
             return False
 
-        return self._task_configs[0].get(ggc.use_multiprocess)
+        return scutil.is_true(self._task_configs[0].get(ggc.use_multiprocess))
 
     def _create_tear_down_queue(self, process_safe):
         if process_safe:
