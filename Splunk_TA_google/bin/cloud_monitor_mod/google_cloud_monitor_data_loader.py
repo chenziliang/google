@@ -1,5 +1,6 @@
 import traceback
 import threading
+import time
 from datetime import datetime
 
 from splunktalib.common import log
@@ -116,7 +117,16 @@ class GoogleCloudMonitorDataLoader(object):
             index=self._config[ggc.index], host=None, source=self._source,
             sourcetype="google:cloudmonitor", time=None, unbroken=False,
             done=False, events=msgs_str)
-        self._config[ggc.event_writer].write_events(events)
+
+        while not self._stopped:
+            try:
+                self._config[ggc.event_writer].write_events(events)
+            except Exception:
+                logger.error(
+                    "Failed to index events for project=%s, metric=%s, "
+                    "error=%s", self._config[ggc.google_project],
+                    self._config[gmc.google_metric], traceback.format_exc())
+                time.sleep(2)
 
 
 if __name__ == "__main__":

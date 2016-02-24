@@ -97,7 +97,7 @@ class ModinputEventWriter(object):
         self._event_writer.join()
         logger.info("ModinputEventWriter stopped.")
 
-    def write_events(self, events):
+    def write_events(self, events, retry=3):
         """
         :param evetns: list of ModinputEvent objects
         """
@@ -182,7 +182,7 @@ class HecEventWriter(object):
 
         return "\n".join(json.dumps(evt) for evt in events)
 
-    def write_events(self, events):
+    def write_events(self, events, retry=3):
         """
         :params: events a list of json dict which meets HEC event schema
         {
@@ -199,7 +199,7 @@ class HecEventWriter(object):
 
         last_ex = None
         events = self._prepare_events(events)
-        for i in range(3):
+        for _ in range(retry):
             try:
                 response, content = self._http.request(
                     self._uri, method="POST", headers=self._headers,
@@ -211,6 +211,7 @@ class HecEventWriter(object):
                            "error_code={}, reason={}").format(
                                self._uri, response.status, content)
                     logger.error(msg)
+                    # We raise here to commonly use the below code block
                     raise Exception(msg)
             except Exception as e:
                 last_ex = e

@@ -72,8 +72,6 @@ class GooglePubSubDataLoader(object):
                     self._config[gpc.google_subscription])
 
     def _do_safe_index(self):
-        # 1) Cache max_events in memory before indexing for batch processing
-
         msgs_metrics = {
             "current_record_count": 0,
             "record_report_threshhold": 1000000,
@@ -82,21 +80,10 @@ class GooglePubSubDataLoader(object):
 
         sub = gpw.GooglePubSub(logger, self._config)
         while not self._stopped:
-            try:
-                for msgs in sub.pull_messages():
-                    if not self._stopped and msgs:
-                        self._index_messages(msgs, msgs_metrics)
-                        sub.ack_messages(msgs)
-                    else:
-                        break
-            except Exception:
-                logger.error(
-                    "Failed to pull message from project=%s, subscription=%s, "
-                    "error=%s", self._config[ggc.google_project],
-                    self._config[gpc.google_subscription],
-                    traceback.format_exc())
-                time.sleep(2)
-                continue
+            for msgs in sub.pull_messages():
+                if msgs:
+                    self._index_messages(msgs, msgs_metrics)
+                    sub.ack_messages(msgs)
         self._running = False
 
     def _index_messages(self, msgs, msgs_metrics):
@@ -118,7 +105,16 @@ class GooglePubSubDataLoader(object):
             index=self._config[ggc.index], host=None, source=self._source,
             sourcetype="google:pubsub", time=None, unbroken=False, done=False,
             events=msgs)
-        self._config[ggc.event_writer].write_events(events)
+        while not self._stopped:
+            try:
+                self._config[ggc.event_writer].write_events(events, retry=1)
+            except Exception:
+                logger.error(
+                    "Failed to index events for project=%s, subscription=%s, "
+                    "error=%s", self._config[ggc.google_project],
+                    self._config[gpc.google_subscription],
+                    traceback.format_exc())
+                time.sleep(2)
 
 
 if __name__ == "__main__":
